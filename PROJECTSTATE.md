@@ -49,7 +49,7 @@ A chronological list of JSON objects describing ownership transfers. Append new 
 ## Conventions
 
 - All times use ISO 8601 UTC.
-- `from_agent` / `to_agent` must match actual agent `name` in `.copilot/agents`.
+- `from_agent` / `to_agent` must match actual agent `name` in `.github/agents`.
 - `phase` uses `planningtorequirements`, `requirementstodesign`, `designtoimplementation`, `implementationtotesting`, `testingtodeployment`, `deploymenttomaintenance`, or a clearly named custom phase.
 - `artefacts` are repository-relative paths.
 - `validation` describes what the receiving agent checked before accepting ownership.
