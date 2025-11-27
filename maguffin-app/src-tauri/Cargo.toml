@@ -1,0 +1,72 @@
+[package]
+name = "maguffin-app"
+version = "0.1.0"
+description = "A Rust-based Desktop Git Client with Tower-style PR Dashboard and Graphite-style Stacked PRs"
+authors = ["Maguffin Team"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/dscv103/maguffin"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "maguffin_app_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+# Core Tauri
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+# Async runtime
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "sync"] }
+
+# Error handling
+thiserror = "1"
+anyhow = "1"
+
+# Logging
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Git operations
+git2 = "0.18"
+
+# HTTP client for GitHub API
+reqwest = { version = "0.12", features = ["json", "rustls-tls"], default-features = false }
+
+# GraphQL (for GitHub API)
+graphql_client = "0.14"
+
+# Secure credential storage
+keyring = "2"
+
+# Local cache (SQLite)
+rusqlite = { version = "0.31", features = ["bundled"] }
+
+# Date/time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# URL parsing
+url = "2"
+
+# UUID generation
+uuid = { version = "1", features = ["v4", "serde"] }
+
+[features]
+# This feature is used for production builds or when a dev server is not specified, DO NOT REMOVE!!
+custom-protocol = ["tauri/custom-protocol"]
+
+[dev-dependencies]
+tempfile = "3"
+

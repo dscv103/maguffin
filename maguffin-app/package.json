@@ -1,0 +1,23 @@
+{
+  "name": "maguffin-app",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A Rust-based Desktop Git Client with Tower-style PR Dashboard and Graphite-style Stacked PRs",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "tauri": "tauri",
+    "test:rust": "cd src-tauri && cargo test"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2",
+    "@tauri-apps/plugin-opener": "^2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "vite": "^6.0.3",
+    "typescript": "~5.6.2"
+  }
+}
