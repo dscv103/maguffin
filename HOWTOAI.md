@@ -1,17 +1,17 @@
-# How to Use AI with goose  
-_A practical guide for contributing to goose using AI coding assistants_
+# How to Use AI for Software Development  
+_A practical guide for contributing to open source projects using AI coding assistants_
 
-goose benefits from thoughtful AI-assisted development, but contributors must maintain high standards for code quality, security, and collaboration. Whether you use goose itself, GitHub Copilot, Cursor, Claude, or other AI tools, this guide will help you contribute effectively.
+Modern software projects benefit from thoughtful AI-assisted development, but contributors must maintain high standards for code quality, security, and collaboration. Whether you use GitHub Copilot, Cursor, Claude, ChatGPT, or other AI tools, this guide will help you contribute effectively.
 
----
+***
 
 ## Core Principles
 
-- **Human Oversight**: You are accountable for all code you submit. Never commit code you don’t understand or can’t maintain.  
-- **Quality Standards**: AI code must meet the same standards as human written code—tests, docs, and patterns included.  
+- **Human Oversight**: You are accountable for all code you submit. Never commit code you don't understand or can't maintain.  
+- **Quality Standards**: AI code must meet the same standards as human-written code—tests, docs, and patterns included.  
 - **Transparency**: Be open about significant AI usage in PRs and explain how you validated it.  
 
----
+***
 
 ## Best Practices
 
@@ -27,8 +27,8 @@ goose benefits from thoughtful AI-assisted development, but contributors must ma
 **❌ Avoid AI For**  
 
 - Complex business logic without thorough review  
-- Security critical authentication/authorization code  
-- Code you don’t fully understand  
+- Security-critical authentication/authorization code  
+- Code you don't fully understand  
 - Large architectural changes  
 - Database migrations or schema changes  
 
@@ -40,15 +40,15 @@ goose benefits from thoughtful AI-assisted development, but contributors must ma
 
 **Security Considerations**  
 
-- Extra review required for MCP servers, network code, file system ops, user input, and credential handling  
+- Extra review required for network code, file system operations, user input handling, and credential management  
 - Never expose secrets in prompts  
-- Sanitize inputs/outputs and follow goose’s security patterns  
+- Sanitize inputs/outputs and follow the project's security patterns  
 
----
+***
 
 ## Testing & Review
 
-Before submitting AI assisted code, confirm that:  
+Before submitting AI-assisted code, confirm that:  
 - You understand every line  
 - All tests pass locally (happy path + error cases)  
 - Docs are updated and accurate  
@@ -56,78 +56,62 @@ Before submitting AI assisted code, confirm that:
 
 **Always get human review** for: 
 
-- Security sensitive code  
+- Security-sensitive code  
 - Core architecture changes  
 - Async/concurrency logic  
-- MCP protocol implementations  
-- Large refactors or anything you’re unsure about  
+- Protocol implementations  
+- Large refactors or anything you're unsure about  
 
----
+***
 
-## Using goose for goose development
+## Project-Specific Configuration
 
-- Protect sensitive files with `.gooseignore` (e.g., `.env*`, `*.key`, `target/`, `.git/`)  
-- Guide goose with `.goosehints` (patterns, error handling, formatting, tests, docs)  
-- Use `/plan` to structure work, and choose modes wisely:  
-  - **Chat** for understanding  
-  - **Smart Approval** for most dev work  
-  - **Approval** for critical areas  
-  - **Autonomous** only with safety nets  
+- Protect sensitive files with ignore patterns (e.g., `.gitignore`, `.env*`, `*.key`, build artifacts)  
+- Create project hints or rules files to guide AI assistants (patterns, error handling, formatting requirements)  
+- Understand the project's contribution workflow before using autonomous modes  
 
----
+***
 
 ## Community & Collaboration
 
 - In PRs, note significant AI use and how you validated results  
 - Share prompting tips, patterns, and pitfalls  
-- Be responsive to feedback and help improve this guide  
+- Be responsive to feedback and help improve contribution practices  
 
----
+***
 
 ## Remember
 
-AI is a powerful assistant, not a replacement for your judgment. Use it to speed up development; while keeping your brain engaged, your standards high, and goose secure.  
+AI is a powerful assistant, not a replacement for your judgment. Use it to speed up development while keeping your brain engaged, your standards high, and the project secure.  
 
-Questions? Join our [Discord](https://discord.gg/goose-oss) or [GitHub Discussions](https://github.com/block/goose/discussions) to talk more about responsible AI development.  
+Questions? Check the project's Discord, Slack, or GitHub Discussions for community guidance on responsible AI development.  
 
----
+***
 
 ## Getting Started with AI Tools
 
 ### Quick Setup
 
-**Using goose (meta!):**
-```bash
-# Install goose
-curl -fsSL https://github.com/block/goose/releases/latest/download/install.sh | bash
-
-# Navigate to your goose clone
-cd /path/to/goose
-
-# Start goose in the repo
-goose
-```
-
 **Using GitHub Copilot:**
 - Install the [GitHub Copilot extension](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot) for VS Code
-- Enable Copilot for Rust files in your settings
-- Recommended: Also install [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer) for better code intelligence
+- Enable Copilot for your project's language(s) in settings
+- Recommended: Install language-specific extensions for better code intelligence
 
 **Using Cursor:**
 - Download [Cursor](https://cursor.sh/) (VS Code fork with built-in AI)
-- Open the goose repository
+- Open your project repository
 - Use Cmd/Ctrl+K for inline AI editing, Cmd/Ctrl+L for chat
 
 **Using Claude or ChatGPT:**
 - Copy relevant code sections into the chat interface
-- Provide context about the goose architecture (see below)
+- Provide context about the project architecture (see below)
 - Always test generated code locally before committing
 
-### Rust-Specific Configuration
+### Language-Specific Configuration
 
-If you're new to Rust, configure your AI tool to help you learn:
+Configure your AI tool to help you learn the project's language and conventions:
 
-**VS Code settings.json:**
+**VS Code settings.json (example for Rust):**
 ```json
 {
   "rust-analyzer.checkOnSave.command": "clippy",
@@ -139,179 +123,165 @@ If you're new to Rust, configure your AI tool to help you learn:
 
 **Cursor Rules (.cursorrules in repo root):**
 ```
-This is a Rust project using cargo workspaces.
-- Follow existing error handling patterns using anyhow::Result
-- Use async/await for I/O operations
-- Follow the project's clippy lints (see clippy-baselines/)
-- Run cargo fmt before committing
+Adapt this to your project's technology stack and conventions.
+- Follow existing error handling patterns
+- Use appropriate async patterns for your language
+- Follow the project's linting rules
+- Run formatters before committing
 ```
 
----
+***
 
-## Understanding goose's Architecture
+## Understanding Project Architecture
 
-New to AI agents? Here are key questions to ask your AI tool:
+New to the project? Here are key questions to ask your AI tool:
 
 ### Essential Concepts
 
-**"Explain the goose crate structure"**
+**"Explain the project structure"**
 ```
-Ask: "I'm looking at the goose repository. Can you explain the purpose of each crate 
-in the crates/ directory and how they relate to each other?"
+Ask: "I'm looking at this repository. Can you explain the purpose of each 
+major directory/module and how they relate to each other?"
 
-Key insight: goose uses a workspace with specialized crates:
-- goose: Core agent logic
-- goose-cli: Command-line interface
-- goose-server: Backend for desktop app (goosed)
-- goose-mcp: MCP server implementations
+Key insight: Understanding the high-level architecture helps you know 
+where to make changes.
 ```
 
-**"How does the MCP protocol work in goose?"**
+**"How does [core feature] work?"**
 ```
-Ask: "What is the Model Context Protocol (MCP) and how does goose implement it? 
-Show me an example from crates/goose-mcp/"
+Ask: "What is [core technology/pattern] and how does this project implement it? 
+Show me an example from the codebase."
 
-Key insight: MCP allows goose to connect to external tools and data sources. 
-Each MCP server provides specific capabilities (developer tools, file access, etc.)
+Key insight: Learn the key patterns and technologies used throughout the project.
 ```
 
-**"What's the agent execution flow?"**
+**"What's the execution flow?"**
 ```
-Ask: "Walk me through what happens when a user sends a message to goose. 
-Start from crates/goose-cli/src/main.rs"
+Ask: "Walk me through what happens when [user action occurs]. 
+Start from [entry point file]."
 
-Key insight: Message → Agent → Provider (LLM) → Tool execution → Response
+Key insight: Trace how data/requests flow through the system.
 ```
 
 ### Navigating the Codebase with AI
 
 **Finding the right file:**
 ```
-# Use ripgrep with AI assistance
-Ask: "I want to add a new shell command tool. Where should I look?"
-AI might suggest: rg "shell" crates/goose-mcp/ -l
+# Use search tools with AI assistance
+Ask: "I want to add [new feature]. Where should I look?"
+AI might suggest: grep/rg commands or specific directories
 
-Then ask: "Explain the structure of crates/goose-mcp/src/developer/tools/shell.rs"
+Then ask: "Explain the structure of [suggested file]"
 ```
 
 **Understanding patterns:**
 ```
-Ask: "Show me the pattern for implementing a new Provider in goose"
-Then: "What's the difference between streaming and non-streaming providers?"
+Ask: "Show me the pattern for implementing [common task] in this project"
+Then: "What are the conventions I should follow?"
 ```
 
----
+***
 
 ## Practical Examples
 
-### Example 1: Understanding How to Add a New MCP Tool
+### Example 1: Adding a New Feature
 
-**Scenario:** You want to add a new tool to the developer MCP server.
+**Scenario:** You want to add a new function or module.
 
-**Step 1 - Explore existing tools:**
+**Step 1 - Explore existing code:**
 ```bash
-# Ask AI: "Show me the structure of an existing MCP tool"
-ls crates/goose-mcp/src/developer/tools/
+# Ask AI: "Show me existing implementations of similar features"
+# Explore the suggested directories
 
-# Pick a simple one to study
-# Ask AI: "Explain this tool implementation line by line"
-cat crates/goose-mcp/src/developer/tools/shell.rs
+# Ask AI: "Explain this implementation line by line"
+# Study a similar feature
 ```
 
-**Step 2 - Ask AI to draft your new tool:**
+**Step 2 - Ask AI to draft your feature:**
 ```
-Prompt: "I want to add a new MCP tool called 'git_status' that runs git status 
-and returns the output. Based on the pattern in shell.rs, draft the implementation."
+Prompt: "I want to add [feature description]. Based on the pattern in 
+[existing code], draft the implementation."
 ```
 
 **Step 3 - Validate with AI:**
 ```
 Ask: "Review this code for:
-1. Proper error handling using anyhow::Result
-2. Security concerns (command injection, etc.)
-3. Async/await patterns matching the codebase
+1. Proper error handling following project patterns
+2. Security concerns
+3. Coding style matching the codebase
 4. Test coverage needs"
 ```
 
 **Step 4 - Test locally:**
 ```bash
-# Build and test
-cargo build -p goose-mcp
-cargo test -p goose-mcp
-
-# Run clippy
-./scripts/clippy-lint.sh
+# Build and test according to project conventions
+# Run linters and formatters
+# Verify all tests pass
 ```
 
-### Example 2: Fixing a Rust Compiler Error
+### Example 2: Fixing a Compiler/Runtime Error
 
-**Scenario:** You're getting a lifetime error you don't understand.
+**Scenario:** You're getting an error you don't understand.
 
 **Step 1 - Copy the full error:**
 ```bash
-cargo build 2>&1 | pbcopy  # macOS
-cargo build 2>&1 | xclip    # Linux
+# Capture the complete error message with context
 ```
 
 **Step 2 - Ask AI with context:**
 ```
-Prompt: "I'm getting this Rust compiler error in the goose project:
+Prompt: "I'm getting this error in [project name]:
 
 [paste error]
 
 Here's the relevant code:
 [paste code section]
 
-Explain what's wrong and how to fix it following Rust best practices."
+Explain what's wrong and how to fix it following best practices."
 ```
 
 **Step 3 - Understand the fix:**
 ```
-Ask: "Explain why this fix works and what I should learn about Rust lifetimes"
+Ask: "Explain why this fix works and what concepts I should learn"
 ```
 
 **Step 4 - Apply and verify:**
 ```bash
 # Apply the fix
-# Then verify it compiles and tests pass
-cargo build
-cargo test
+# Verify it works and tests pass
 ```
 
-### Example 3: Adding a Feature to the CLI
+### Example 3: Contributing to the CLI or API
 
-**Scenario:** You want to add a new command-line flag to goose-cli.
+**Scenario:** You want to add a new interface option.
 
-**Step 1 - Find the CLI argument parsing:**
+**Step 1 - Find the relevant code:**
 ```bash
-# Ask AI: "Where does goose-cli parse command line arguments?"
-rg "clap" crates/goose-cli/src/ -l
+# Ask AI: "Where is [interface type] defined in this project?"
+# Use suggested search commands
 ```
 
 **Step 2 - Study the pattern:**
 ```
-Ask: "Explain how goose-cli uses clap for argument parsing. 
-Show me how existing flags are defined."
+Ask: "Explain how this project handles [interface options/endpoints]. 
+Show me how existing ones are defined."
 ```
 
 **Step 3 - Draft your addition:**
 ```
-Prompt: "I want to add a --verbose flag that enables debug logging. 
-Based on the existing patterns in goose-cli, show me:
-1. How to add the flag to the CLI args struct
-2. How to pass it to the goose core
-3. How to use it to control log levels"
+Prompt: "I want to add [new option/endpoint] that does [behavior]. 
+Based on existing patterns, show me:
+1. How to define it in the code
+2. How to integrate it with the existing system
+3. How to test it properly"
 ```
 
 **Step 4 - Implement with validation:**
 ```bash
 # Make changes
-# Build both crates
-cargo build -p goose-cli -p goose
-
-# Test the new flag
-./target/debug/goose --verbose session
-
-# Run tests
-cargo test -p goose-cli
+# Build the project
+# Test the new feature
+# Run the full test suite
 ```
+
+[1](https://ppl-ai-file-upload.s3.amazonaws.com/web/direct-files/attachments/51125243/b9d9d638-3af6-43e3-ab11-2265386b4622/HOWTOAI.md)
