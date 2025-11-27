@@ -650,7 +650,11 @@ Stack metadata is stored in `.git/stack-metadata.json` (not tracked in version c
 
 ### 6.4 Reconciliation Process
 
+The following pseudocode illustrates the reconciliation logic. Types like `ReconcileReport`, `Warning`, and `BranchStatus` are domain types to be defined during implementation.
+
 ```rust
+// Note: ReconcileReport, Warning, and BranchStatus are placeholder types
+// that will be defined in the domain layer during implementation
 pub fn reconcile_stack(&mut self, repo: &git2::Repository) -> Result<ReconcileReport> {
     let mut report = ReconcileReport::new();
     

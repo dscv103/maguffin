@@ -123,8 +123,10 @@ impl GitOperations for GitFacade {
         // Try git2 first
         match self.git2.rebase(branch, onto) {
             Ok(result) => Ok(result),
-            Err(e) if e.is_complexity_limit() => {
+            Err(e) if self.should_fallback(&e) => {
                 // Fall back to CLI for complex cases
+                // Note: should_fallback() is a custom method that checks if
+                // the error indicates a case where CLI would handle it better
                 log::info!("Falling back to CLI for rebase: {}", e);
                 self.cli.rebase(branch, onto)
             }
@@ -242,7 +244,8 @@ fn test_rebase_parity() {
     // Reset repo
     reset_repo(&repo);
     
-    let cli_result = CliBackend::new(&repo.path()).rebase("feature-b", "main");
+    // Note: In actual implementation, CliBackend::new() takes a PathBuf
+    let cli_result = CliBackend::new(repo.path().to_path_buf()).rebase("feature-b", "main");
     
     assert_eq!(git2_result, cli_result);
 }
