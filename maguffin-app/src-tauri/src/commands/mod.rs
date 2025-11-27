@@ -8,8 +8,15 @@ use crate::error::AppError;
 use tauri::State;
 
 /// Application state managed by Tauri.
+/// 
+/// This will be populated with services as they are implemented:
+/// - PRService for pull request operations
+/// - StackService for stack management
+/// - AuthService for authentication
+/// - SyncService for background synchronization
 pub struct AppState {
-    // TODO: Add services and state here
+    // Placeholder until services are implemented
+    #[allow(dead_code)]
     _placeholder: (),
 }
 
