@@ -24,7 +24,8 @@ function modifierMatches(
     // For Ctrl, also accept Cmd (meta) on Mac
     return pressed || metaPressed;
   }
-  return !pressed;
+  // When not required, ensure neither the key nor meta is pressed
+  return !pressed && !metaPressed;
 }
 
 export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[], enabled = true) {
@@ -51,11 +52,8 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[], enabled = tr
         const ctrlMatches = modifierMatches(shortcut.ctrl, event.ctrlKey, event.metaKey);
         const shiftMatches = modifierMatches(shortcut.shift, event.shiftKey);
         const altMatches = modifierMatches(shortcut.alt, event.altKey);
-        
-        // If no ctrl shortcut required, ensure neither ctrl nor meta is pressed
-        const noUnwantedModifiers = shortcut.ctrl || (!event.ctrlKey && !event.metaKey);
 
-        if (keyMatches && ctrlMatches && shiftMatches && altMatches && noUnwantedModifiers) {
+        if (keyMatches && ctrlMatches && shiftMatches && altMatches) {
           event.preventDefault();
           shortcut.action();
           return;

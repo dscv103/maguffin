@@ -17,21 +17,29 @@ function App() {
 
   const isAuthenticated = authState.type === "authenticated";
 
+  // Define keyboard shortcut callbacks
+  const onNavigateDashboard = useCallback(() => setCurrentView("dashboard"), []);
+  const onNavigateStacks = useCallback(() => setCurrentView("stacks"), []);
+  const onNavigateSettings = useCallback(() => setCurrentView("settings"), []);
+  const onRefresh = useCallback(() => refreshPRs(), [refreshPRs]);
+  const onToggleTheme = useCallback(() => toggleTheme(), [toggleTheme]);
+  const onEscape = useCallback(() => {
+    if (showShortcuts) {
+      setShowShortcuts(false);
+    } else if (selectedPR) {
+      setSelectedPR(null);
+    }
+  }, [showShortcuts, selectedPR]);
+
   // Keyboard shortcuts
   useAppKeyboardShortcuts(
     {
-      onNavigateDashboard: useCallback(() => setCurrentView("dashboard"), []),
-      onNavigateStacks: useCallback(() => setCurrentView("stacks"), []),
-      onNavigateSettings: useCallback(() => setCurrentView("settings"), []),
-      onRefresh: useCallback(() => refreshPRs(), [refreshPRs]),
-      onToggleTheme: useCallback(() => toggleTheme(), [toggleTheme]),
-      onEscape: useCallback(() => {
-        if (showShortcuts) {
-          setShowShortcuts(false);
-        } else if (selectedPR) {
-          setSelectedPR(null);
-        }
-      }, [showShortcuts, selectedPR]),
+      onNavigateDashboard,
+      onNavigateStacks,
+      onNavigateSettings,
+      onRefresh,
+      onToggleTheme,
+      onEscape,
     },
     isAuthenticated
   );

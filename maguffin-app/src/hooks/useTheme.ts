@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 type Theme = "dark" | "light";
 
 const THEME_KEY = "maguffin-theme";
+const THEME_USER_SET_KEY = "maguffin-theme-user-set";
 
 export function useTheme() {
   const [theme, setThemeState] = useState<Theme>(() => {
@@ -30,9 +31,9 @@ export function useTheme() {
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: light)");
     const handler = (e: MediaQueryListEvent) => {
-      // Only update if user hasn't manually set a preference
-      const stored = localStorage.getItem(THEME_KEY);
-      if (!stored) {
+      // Only update if user hasn't explicitly set a preference
+      const userSet = localStorage.getItem(THEME_USER_SET_KEY);
+      if (userSet !== "true") {
         setThemeState(e.matches ? "light" : "dark");
       }
     };
@@ -42,10 +43,14 @@ export function useTheme() {
   }, []);
 
   const toggleTheme = useCallback(() => {
+    // Mark that user has explicitly set a preference
+    localStorage.setItem(THEME_USER_SET_KEY, "true");
     setThemeState((prev) => (prev === "dark" ? "light" : "dark"));
   }, []);
 
   const setTheme = useCallback((newTheme: Theme) => {
+    // Mark that user has explicitly set a preference
+    localStorage.setItem(THEME_USER_SET_KEY, "true");
     setThemeState(newTheme);
   }, []);
 
