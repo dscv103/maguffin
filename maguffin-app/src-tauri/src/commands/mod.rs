@@ -291,7 +291,7 @@ pub async fn checkout_pull_request(state: State<'_, AppState>, number: i64) -> R
                 git.checkout_branch(&branch_name)
                     .map_err(|e| e.to_string())?;
             }
-            Ok(())
+            Ok::<_, String>(())
         }
     })
     .await
@@ -394,7 +394,8 @@ pub async fn create_stack_branch(
                 .create_stack_branch(stack_uuid, branch_name, parent_name)
                 .await
         })
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+        Ok::<_, String>(())
     })
     .await
     .map_err(|e| format!("Task failed: {:?}", e))?
