@@ -127,11 +127,14 @@ A chronological list of JSON objects describing ownership transfers. Append new 
       "maguffin-app/src/hooks/useRepository.ts",
       "maguffin-app/src/hooks/index.ts",
       "maguffin-app/src/App.tsx",
-      "maguffin-app/src/styles.css"
+      "maguffin-app/src/styles.css",
+      "maguffin-app/src-tauri/src/config/mod.rs",
+      "maguffin-app/src-tauri/src/github/auth_service.rs",
+      "maguffin-app/src-tauri/src/commands/mod.rs"
     ],
-    "trigger": "Implemented repository selection UI. Added RepoSelector component, useRepository hook, and updated App.tsx to show repository selection and handle no-repo state.",
-    "timestamp": "2025-11-28T05:20:00Z",
-    "validation": "All 50 unit tests pass. Frontend builds successfully. Repository selection flow complete with path input, current repo display, and change functionality."
+    "trigger": "Implemented repository selection UI and addressed code review feedback. Added RepoSelector component, useRepository hook, moved OAuth client ID to config with env var override, fixed spacing inconsistencies.",
+    "timestamp": "2025-11-28T05:30:00Z",
+    "validation": "All 50 unit tests pass. Frontend builds successfully. Repository selection flow complete. OAuth client ID configurable via MAGUFFIN_GITHUB_CLIENT_ID environment variable."
   }
 ]
 ```
