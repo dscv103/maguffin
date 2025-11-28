@@ -18,15 +18,18 @@ export function AuthView({ onAuthenticated }: AuthViewProps) {
   useEffect(() => {
     if (authState.type !== "pending") return;
 
+    // Use the interval from the auth state, with a minimum of 5 seconds
+    const pollInterval = Math.max((authState.interval || 5) * 1000, 5000);
+
     const interval = setInterval(async () => {
       const newState = await pollDeviceFlow();
       if (newState.type === "authenticated") {
         clearInterval(interval);
       }
-    }, 5000);
+    }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [authState.type, pollDeviceFlow]);
+  }, [authState.type, authState.type === "pending" ? authState.interval : undefined, pollDeviceFlow]);
 
   if (loading) {
     return (
@@ -51,11 +54,11 @@ export function AuthView({ onAuthenticated }: AuthViewProps) {
       <div className="auth-view authenticated">
         <div className="user-info">
           <img
-            src={authState.data.avatar_url}
-            alt={authState.data.username}
+            src={authState.avatar_url}
+            alt={authState.login}
             className="avatar"
           />
-          <span className="username">{authState.data.username}</span>
+          <span className="username">{authState.login}</span>
         </div>
         <button onClick={logout} className="logout-btn">
           Logout
@@ -69,9 +72,9 @@ export function AuthView({ onAuthenticated }: AuthViewProps) {
       <div className="auth-view pending">
         <h2>GitHub Authentication</h2>
         <p>Enter this code at GitHub:</p>
-        <code className="user-code">{authState.data.user_code}</code>
+        <code className="user-code">{authState.user_code}</code>
         <a
-          href={authState.data.verification_uri}
+          href={authState.verification_uri}
           target="_blank"
           rel="noopener noreferrer"
           className="verify-link"

@@ -88,6 +88,20 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Implemented full GitHub GraphQL queries, stack service with restack logic, and React frontend UI components",
     "timestamp": "2025-11-28T03:53:00Z",
     "validation": "All 47 unit tests pass. Frontend builds successfully. GraphQL queries for PR listing/details/creation/merging implemented. Stack service with restack, reconcile, and branch management implemented. React components for auth, PR dashboard, and stack visualization created."
+  },
+  {
+    "from_agent": "feature-developer",
+    "to_agent": "feature-developer",
+    "phase": "implementation-milestone-3",
+    "artefacts": [
+      "maguffin-app/src-tauri/src/github/auth_service.rs",
+      "maguffin-app/src-tauri/src/commands/mod.rs",
+      "maguffin-app/src/types/index.ts",
+      "maguffin-app/src/components/AuthView.tsx"
+    ],
+    "trigger": "Wired Tauri commands to actual backend services. Implemented AuthService for GitHub OAuth device flow. Connected PRService to list_pull_requests command. Updated frontend types to match Rust serialization format.",
+    "timestamp": "2025-11-28T04:50:00Z",
+    "validation": "All 50 unit tests pass (49 + 1 ignored). Frontend builds successfully. AuthService implements GitHub device flow with keyring storage. Commands properly wired to services for auth, repo opening, PR listing, and PR checkout."
   }
 ]
 ```

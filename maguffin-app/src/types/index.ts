@@ -92,27 +92,39 @@ export interface DeviceFlowPending {
   user_code: string;
   verification_uri: string;
   expires_at: string;
+  interval: number;
 }
 
 export interface AuthenticatedUser {
-  username: string;
+  login: string;
+  id: number;
+  name: string | null;
+  email: string | null;
   avatar_url: string;
+  authenticated_at: string;
 }
 
+// AuthState matches Rust's serde(tag = "type") serialization
+// The variant's fields are flattened into the same object
 export type AuthState =
   | { type: "unauthenticated" }
-  | { type: "pending"; data: DeviceFlowPending }
-  | { type: "authenticated"; data: AuthenticatedUser };
+  | ({ type: "pending" } & DeviceFlowPending)
+  | ({ type: "authenticated" } & AuthenticatedUser);
 
 // Repository types
 export interface Repository {
   path: string;
+  owner: string;
   name: string;
-  remote: {
-    owner: string;
-    name: string;
-    api_base: string;
-    host: string;
-  } | null;
   current_branch: string;
+  default_branch: string;
+  remote_url: string;
+  sync_state: SyncState;
 }
+
+export type SyncState = 
+  | { type: "up_to_date" }
+  | { type: "ahead"; commits: number }
+  | { type: "behind"; commits: number }
+  | { type: "diverged"; ahead: number; behind: number }
+  | { type: "unknown" };

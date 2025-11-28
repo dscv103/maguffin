@@ -3,6 +3,7 @@
 //! This module provides the client for interacting with GitHub's GraphQL API.
 //! It handles authentication, rate limiting, pagination, and query execution.
 
+pub mod auth_service;
 pub mod queries;
 pub mod pr_service;
 pub mod stack_service;
@@ -11,6 +12,7 @@ use crate::error::{GitHubError, Result};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+pub use auth_service::AuthService;
 pub use pr_service::PrService;
 pub use stack_service::StackService;
 
