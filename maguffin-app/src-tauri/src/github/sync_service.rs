@@ -154,6 +154,12 @@ impl SyncService {
     }
 
     /// Start the background sync loop.
+    /// 
+    /// Note: This method can only be called once successfully. Subsequent calls
+    /// will log a warning and return without starting a new sync loop. This is
+    /// by design as the sync service is meant to be initialized once during app
+    /// startup. Use the `SyncCommand::Start` and `SyncCommand::Stop` messages
+    /// to control the running state of an already-started service.
     pub async fn start(&self) {
         // Take ownership of the receiver
         let command_rx = {
@@ -216,31 +222,41 @@ impl SyncService {
                     }
 
                     // Command received
-                    Some(cmd) = command_rx.recv() => {
-                        match cmd {
-                            SyncCommand::Start => {
-                                *running.write().await = true;
-                                tracing::info!("Sync service started");
+                    result = command_rx.recv() => {
+                        match result {
+                            Some(cmd) => {
+                                match cmd {
+                                    SyncCommand::Start => {
+                                        *running.write().await = true;
+                                        tracing::info!("Sync service started");
+                                    }
+                                    SyncCommand::Stop => {
+                                        *running.write().await = false;
+                                        tracing::info!("Sync service stopped");
+                                    }
+                                    SyncCommand::SyncNow => {
+                                        tracing::info!("Manual sync triggered");
+                                        Self::perform_sync(
+                                            &github_client,
+                                            &repo_context,
+                                            &cached_prs,
+                                            &status,
+                                            &stats,
+                                            &rate_limit,
+                                            &event_tx,
+                                        ).await;
+                                    }
+                                    SyncCommand::UpdateConfig(new_config) => {
+                                        *config.write().await = new_config;
+                                        tracing::info!("Sync config updated");
+                                    }
+                                }
                             }
-                            SyncCommand::Stop => {
+                            None => {
+                                // Channel closed, exit the loop
                                 *running.write().await = false;
-                                tracing::info!("Sync service stopped");
-                            }
-                            SyncCommand::SyncNow => {
-                                tracing::info!("Manual sync triggered");
-                                Self::perform_sync(
-                                    &github_client,
-                                    &repo_context,
-                                    &cached_prs,
-                                    &status,
-                                    &stats,
-                                    &rate_limit,
-                                    &event_tx,
-                                ).await;
-                            }
-                            SyncCommand::UpdateConfig(new_config) => {
-                                *config.write().await = new_config;
-                                tracing::info!("Sync config updated");
+                                tracing::info!("SyncService command channel closed, shutting down background task");
+                                break;
                             }
                         }
                     }
@@ -321,18 +337,30 @@ impl SyncService {
                 let error_msg = e.to_string();
                 tracing::error!("Sync failed: {}", error_msg);
 
-                // Check if it's a rate limit error
-                if error_msg.contains("rate limit") {
+                // Check if it's a rate limit error by checking common rate limit indicators
+                // GitHub API returns errors containing "rate limit" or HTTP 403/429 status
+                let error_lower = error_msg.to_lowercase();
+                let is_rate_limited = error_lower.contains("rate limit") 
+                    || error_lower.contains("rate_limit")
+                    || error_lower.contains("403")
+                    || error_lower.contains("429")
+                    || error_lower.contains("too many requests");
+
+                if is_rate_limited {
+                    // Default rate limit reset time (GitHub typically resets hourly)
                     let resets_at = Utc::now() + chrono::Duration::minutes(15);
+                    // Use GitHub's default authenticated rate limit
+                    let limit = 5000u32;
+                    
                     *status.write().await = SyncStatus::RateLimited { resets_at };
                     *rate_limit.write().await = Some(RateLimitInfo {
                         remaining: 0,
-                        limit: 5000,
+                        limit,
                         resets_at,
                     });
                     let _ = event_tx.send(SyncEvent::RateLimitUpdated(RateLimitInfo {
                         remaining: 0,
-                        limit: 5000,
+                        limit,
                         resets_at,
                     }));
                 } else {

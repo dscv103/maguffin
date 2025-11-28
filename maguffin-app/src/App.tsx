@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback } from "./components";
 import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
 import type { PullRequest, Stack } from "./types";
@@ -11,16 +11,20 @@ function App() {
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
   const { theme, setTheme, toggleTheme } = useTheme();
-  const { status: syncStatus, syncNow, loading: syncLoading, startSync, updateConfig } = useSync();
+  const { status: syncStatus, config: syncConfig, syncNow, loading: syncLoading, startSync, updateConfig, error: syncError, clearError: clearSyncError } = useSync();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const isAuthenticated = authState.type === "authenticated";
+  
+  // Track if sync has been initialized for this session
+  const syncInitializedRef = useRef(false);
 
-  // Start sync when authenticated and repository is open
+  // Start sync when authenticated and repository is open (only once)
   useEffect(() => {
-    if (isAuthenticated && repository) {
+    if (isAuthenticated && repository && !syncInitializedRef.current) {
+      syncInitializedRef.current = true;
       startSync();
     }
   }, [isAuthenticated, repository, startSync]);
@@ -214,11 +218,22 @@ function App() {
                 <section className="settings-section">
                   <h2>Synchronization</h2>
                   <div className="setting-item">
+                    <label className="setting-label">Enable Sync</label>
+                    <label className="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        checked={syncConfig.enabled}
+                        onChange={(e) => updateConfig(syncConfig.interval_secs, e.target.checked)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div className="setting-item">
                     <label className="setting-label">Sync Interval</label>
                     <select
                       className="setting-select"
-                      defaultValue="60"
-                      onChange={(e) => updateConfig(parseInt(e.target.value, 10), true)}
+                      value={syncConfig.interval_secs}
+                      onChange={(e) => updateConfig(parseInt(e.target.value, 10), syncConfig.enabled)}
                     >
                       <option value="30">30 seconds</option>
                       <option value="60">1 minute</option>
@@ -228,11 +243,32 @@ function App() {
                   </div>
                   <div className="setting-item">
                     <p className="setting-description">
-                      Current status: {syncStatus.status === "idle" 
-                        ? `Idle${syncStatus.last_sync ? ` (last sync: ${new Date(syncStatus.last_sync).toLocaleTimeString()})` : ""}`
-                        : syncStatus.status}
+                      Current status: {
+                        (() => {
+                          switch (syncStatus.status) {
+                            case "idle":
+                              return `Idle${syncStatus.last_sync ? ` (last sync: ${new Date(syncStatus.last_sync).toLocaleTimeString()})` : ""}`;
+                            case "in_progress":
+                              return "Sync in progress...";
+                            case "failed":
+                              return `Sync failed${syncStatus.error ? `: ${syncStatus.error}` : ""}`;
+                            case "rate_limited":
+                              return `Rate limited until ${new Date(syncStatus.resets_at).toLocaleTimeString()}`;
+                            default:
+                              return "Unknown";
+                          }
+                        })()
+                      }
                     </p>
                   </div>
+                  {syncError && (
+                    <div className="setting-item">
+                      <div className="sync-error">
+                        <p className="error-message">{syncError}</p>
+                        <button onClick={clearSyncError} className="dismiss-btn">Dismiss</button>
+                      </div>
+                    </div>
+                  )}
                 </section>
 
                 <section className="settings-section">
