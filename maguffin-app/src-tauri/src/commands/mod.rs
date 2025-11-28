@@ -332,12 +332,11 @@ pub async fn create_stack(
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path;
-    
     tokio::task::spawn_blocking(move || {
         let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
         let runtime = tokio::runtime::Handle::current();
         let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
-        
+
         runtime.block_on(async {
             stack_service
                 .create_stack(root_branch)
@@ -365,12 +364,11 @@ pub async fn create_stack_branch(
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path;
-    
     tokio::task::spawn_blocking(move || {
         let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
         let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
         let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
-        
+
         let runtime = tokio::runtime::Handle::current();
         runtime.block_on(async {
             stack_service
@@ -378,7 +376,7 @@ pub async fn create_stack_branch(
                 .await
                 .map_err(|e| e.to_string())
         })?;
-        
+
         Ok(())
     })
     .await
@@ -396,12 +394,11 @@ pub async fn restack(state: State<'_, AppState>, stack_id: String) -> Result<Res
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path;
-    
     tokio::task::spawn_blocking(move || {
         let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
         let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
         let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
-        
+
         let runtime = tokio::runtime::Handle::current();
         runtime.block_on(async {
             stack_service

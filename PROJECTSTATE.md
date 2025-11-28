@@ -116,6 +116,22 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Added stack management commands (list_stacks, create_stack, create_stack_branch, restack). Implemented useStacks hook and connected StackList component to real data.",
     "timestamp": "2025-11-28T05:10:00Z",
     "validation": "All 50 unit tests pass. Frontend builds successfully. Stack operations properly use spawn_blocking to handle non-Send git2 types across async boundaries."
+  },
+  {
+    "from_agent": "feature-developer",
+    "to_agent": "feature-developer",
+    "phase": "implementation-milestone-5",
+    "artefacts": [
+      "maguffin-app/src/components/RepoSelector.tsx",
+      "maguffin-app/src/components/index.ts",
+      "maguffin-app/src/hooks/useRepository.ts",
+      "maguffin-app/src/hooks/index.ts",
+      "maguffin-app/src/App.tsx",
+      "maguffin-app/src/styles.css"
+    ],
+    "trigger": "Implemented repository selection UI. Added RepoSelector component, useRepository hook, and updated App.tsx to show repository selection and handle no-repo state.",
+    "timestamp": "2025-11-28T05:20:00Z",
+    "validation": "All 50 unit tests pass. Frontend builds successfully. Repository selection flow complete with path input, current repo display, and change functionality."
   }
 ]
 ```

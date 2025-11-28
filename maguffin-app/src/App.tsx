@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { AuthView, PRDashboard, StackList } from "./components";
-import { useAuth, useStacks } from "./hooks";
+import { AuthView, PRDashboard, StackList, RepoSelector } from "./components";
+import { useAuth, useStacks, useRepository } from "./hooks";
 import type { PullRequest, Stack } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
 
 function App() {
   const { authState } = useAuth();
+  const { repository, loading: repoLoading, error: repoError, openRepository, clearRepository } = useRepository();
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
@@ -30,6 +31,13 @@ function App() {
       <nav className="sidebar">
         <div className="sidebar-header">
           <h1 className="app-logo">Maguffin</h1>
+          <RepoSelector
+            repository={repository}
+            loading={repoLoading}
+            error={repoError}
+            onOpenRepository={openRepository}
+            onClearRepository={clearRepository}
+          />
         </div>
 
         <ul className="nav-menu">
@@ -68,38 +76,48 @@ function App() {
       </nav>
 
       <main className="main-content">
-        {currentView === "dashboard" && (
-          <PRDashboard onSelectPR={(pr) => setSelectedPR(pr)} />
-        )}
-
-        {currentView === "stacks" && (
-          <div className="stacks-view">
-            <h1>Stacks</h1>
-            {stacksLoading ? (
-              <div className="loading">
-                <div className="spinner" />
-                <p>Loading stacks...</p>
-              </div>
-            ) : stacksError ? (
-              <div className="error">
-                <p className="error-message">{stacksError}</p>
-              </div>
-            ) : stacks.length === 0 ? (
-              <div className="empty-state">
-                <p>No stacks found</p>
-                <p className="hint">Create a stack to organize your branches</p>
-              </div>
-            ) : (
-              <StackList stacks={stacks} onRestack={handleRestack} />
+        {!repository ? (
+          <div className="no-repo-view">
+            <h1>Welcome to Maguffin</h1>
+            <p>Open a Git repository to get started</p>
+            <p className="hint">Enter a path to a local Git repository in the sidebar</p>
+          </div>
+        ) : (
+          <>
+            {currentView === "dashboard" && (
+              <PRDashboard onSelectPR={(pr) => setSelectedPR(pr)} />
             )}
-          </div>
-        )}
 
-        {currentView === "settings" && (
-          <div className="settings-view">
-            <h1>Settings</h1>
-            <p className="coming-soon">Settings coming soon...</p>
-          </div>
+            {currentView === "stacks" && (
+              <div className="stacks-view">
+                <h1>Stacks</h1>
+                {stacksLoading ? (
+                  <div className="loading">
+                    <div className="spinner" />
+                    <p>Loading stacks...</p>
+                  </div>
+                ) : stacksError ? (
+                  <div className="error">
+                    <p className="error-message">{stacksError}</p>
+                  </div>
+                ) : stacks.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No stacks found</p>
+                    <p className="hint">Create a stack to organize your branches</p>
+                  </div>
+                ) : (
+                  <StackList stacks={stacks} onRestack={handleRestack} />
+                )}
+              </div>
+            )}
+
+            {currentView === "settings" && (
+              <div className="settings-view">
+                <h1>Settings</h1>
+                <p className="coming-soon">Settings coming soon...</p>
+              </div>
+            )}
+          </>
         )}
       </main>
 

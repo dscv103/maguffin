@@ -2,6 +2,7 @@
 //!
 //! This module provides the OAuth device flow implementation for GitHub authentication.
 
+use crate::config::GitHubConfig;
 use crate::domain::auth::{
     AuthState, AuthenticatedUser, DeviceCodeResponse, DeviceFlowPending, GitHubUser,
     TokenPollError, TokenResponse,
@@ -11,10 +12,6 @@ use crate::keyring::KeyringStore;
 use chrono::{Duration, Utc};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-
-/// GitHub OAuth client ID for device flow.
-/// This should be configured for your application.
-const GITHUB_CLIENT_ID: &str = "Ov23liYwNsRRRrKOQCvj";
 
 /// GitHub device flow endpoints.
 const DEVICE_CODE_URL: &str = "https://github.com/login/device/code";
@@ -34,6 +31,9 @@ pub struct AuthService {
 
     /// Device code for polling (only set during pending state)
     device_code: Arc<RwLock<Option<String>>>,
+
+    /// OAuth client ID
+    client_id: String,
 }
 
 impl AuthService {
@@ -44,11 +44,14 @@ impl AuthService {
             .build()
             .map_err(|e| AuthError::OAuthFailed(e.to_string()))?;
 
+        let config = GitHubConfig::default();
+
         Ok(Self {
             http,
             state: Arc::new(RwLock::new(AuthState::Unauthenticated)),
             keyring: KeyringStore::new(),
             device_code: Arc::new(RwLock::new(None)),
+            client_id: config.oauth_client_id,
         })
     }
 
@@ -85,7 +88,7 @@ impl AuthService {
             .http
             .post(DEVICE_CODE_URL)
             .header("Accept", "application/json")
-            .form(&[("client_id", GITHUB_CLIENT_ID), ("scope", "repo")])
+            .form(&[("client_id", self.client_id.as_str()), ("scope", "repo")])
             .send()
             .await
             .map_err(|e| AuthError::OAuthFailed(e.to_string()))?;
@@ -130,8 +133,8 @@ impl AuthService {
             .post(TOKEN_URL)
             .header("Accept", "application/json")
             .form(&[
-                ("client_id", GITHUB_CLIENT_ID),
-                ("device_code", &device_code),
+                ("client_id", self.client_id.as_str()),
+                ("device_code", device_code.as_str()),
                 ("grant_type", "urn:ietf:params:oauth:grant-type:device_code"),
             ])
             .send()
