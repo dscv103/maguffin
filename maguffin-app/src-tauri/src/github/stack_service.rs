@@ -91,13 +91,13 @@ impl StackService {
     ) -> Result<StackBranch> {
         // Create the branch using git
         {
-            let git = self.git.lock().unwrap();
+            let git = self.git.lock().expect("git lock poisoned");
             git.create_branch(&branch_name, &parent_name)?;
         }
 
         // Get the head SHA
         let head_sha = {
-            let git = self.git.lock().unwrap();
+            let git = self.git.lock().expect("git lock poisoned");
             git.get_head_sha(&branch_name).ok()
         };
 
@@ -156,7 +156,7 @@ impl StackService {
         for branch in branches {
             // Check if branch needs restacking
             let needs_restack = {
-                let git = self.git.lock().unwrap();
+                let git = self.git.lock().expect("git lock poisoned");
                 git.needs_rebase(&branch.name, &branch.parent)
                     .unwrap_or(true)
             };
@@ -168,7 +168,7 @@ impl StackService {
 
             // Perform the rebase
             let rebase_result = {
-                let git = self.git.lock().unwrap();
+                let git = self.git.lock().expect("git lock poisoned");
                 git.rebase(&branch.name, &branch.parent)
             };
 
@@ -176,7 +176,7 @@ impl StackService {
                 Ok(_) => {
                     // Force push after successful rebase
                     let push_result = {
-                        let git = self.git.lock().unwrap();
+                        let git = self.git.lock().expect("git lock poisoned");
                         git.force_push(&branch.name, "origin")
                     };
 
@@ -198,7 +198,12 @@ impl StackService {
                         if let Some(b) = s.find_branch_mut(&branch.name) {
                             b.status = BranchStatus::UpToDate;
                             // Update head SHA
-                            if let Ok(sha) = self.git.lock().unwrap().get_head_sha(&branch.name) {
+                            if let Ok(sha) = self
+                                .git
+                                .lock()
+                                .expect("git lock poisoned")
+                                .get_head_sha(&branch.name)
+                            {
                                 b.head_sha = Some(sha);
                             }
                         }
@@ -215,7 +220,7 @@ impl StackService {
                         result.status = RestackStatus::Conflicts;
 
                         // Abort the rebase
-                        let _ = self.git.lock().unwrap().abort_rebase();
+                        let _ = self.git.lock().expect("git lock poisoned").abort_rebase();
 
                         // Update branch status
                         let mut metadata = self.metadata.write().await;
@@ -257,7 +262,7 @@ impl StackService {
         let mut report = ReconcileReport::new();
 
         let mut metadata = self.metadata.write().await;
-        let git = self.git.lock().unwrap();
+        let git = self.git.lock().expect("git lock poisoned");
 
         for stack in &mut metadata.stacks {
             for branch in &mut stack.branches {
