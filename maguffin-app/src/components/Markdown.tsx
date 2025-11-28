@@ -58,11 +58,17 @@ function parseMarkdown(text: string): string {
   // Horizontal rules (--- or ***)
   html = html.replace(/^(---|\*\*\*)$/gm, "<hr />");
 
-  // Links [text](url)
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  // Links [text](url) - only allow safe protocols
+  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, (_match, text, url) => {
+    const safeUrl = sanitizeUrl(url);
+    return safeUrl ? `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${text}</a>` : text;
+  });
 
-  // Images ![alt](url)
-  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
+  // Images ![alt](url) - only allow safe protocols
+  html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (_match, alt, url) => {
+    const safeUrl = sanitizeUrl(url);
+    return safeUrl ? `<img src="${safeUrl}" alt="${alt}" />` : `[Image: ${alt}]`;
+  });
 
   // Process lists with proper handling for ordered vs unordered
   html = processLists(html);
@@ -177,4 +183,26 @@ function escapeHtml(text: string): string {
     ">": "&gt;",
   };
   return text.replace(/[&<>]/g, (char) => escapeMap[char] || char);
+}
+
+/**
+ * Sanitize URLs to prevent XSS attacks.
+ * Only allows http://, https://, and relative URLs.
+ * Blocks javascript:, data:, and other potentially dangerous protocols.
+ */
+function sanitizeUrl(url: string): string | null {
+  const trimmedUrl = url.trim();
+  
+  // Allow relative URLs (starting with / or not containing :)
+  if (trimmedUrl.startsWith("/") || !trimmedUrl.includes(":")) {
+    return trimmedUrl;
+  }
+  
+  // Allow http:// and https:// URLs
+  if (trimmedUrl.startsWith("http://") || trimmedUrl.startsWith("https://")) {
+    return trimmedUrl;
+  }
+  
+  // Block all other protocols (javascript:, data:, etc.)
+  return null;
 }

@@ -7,7 +7,7 @@ interface PRDashboardProps {
   onSelectPR?: (pr: PullRequest) => void;
 }
 
-type SortField = "updated" | "created" | "title" | "comments";
+type SortField = "updated" | "created" | "title" | "activity";
 type SortDirection = "asc" | "desc";
 
 export function PRDashboard({ onSelectPR }: PRDashboardProps) {
@@ -33,7 +33,7 @@ export function PRDashboard({ onSelectPR }: PRDashboardProps) {
         case "title":
           comparison = a.title.localeCompare(b.title);
           break;
-        case "comments":
+        case "activity":
           // Sort by number of commits as a proxy for activity
           comparison = a.commit_count - b.commit_count;
           break;
@@ -104,7 +104,7 @@ export function PRDashboard({ onSelectPR }: PRDashboardProps) {
               <option value="updated">Updated</option>
               <option value="created">Created</option>
               <option value="title">Title</option>
-              <option value="comments">Activity</option>
+              <option value="activity">Activity</option>
             </select>
             <button
               onClick={toggleSortDirection}
