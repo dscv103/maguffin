@@ -541,6 +541,115 @@ body {
   color: var(--text-primary);
 }
 
+/* PR Detail Actions */
+.pr-detail-actions {
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.action-btn {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checkout-btn {
+  background-color: var(--accent-primary);
+  color: white;
+}
+
+.checkout-btn:hover:not(:disabled) {
+  background-color: #3651d4;
+}
+
+.browser-btn {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.browser-btn:hover:not(:disabled) {
+  background-color: var(--border-color);
+}
+
+.merge-btn {
+  background-color: var(--accent-success);
+  color: white;
+}
+
+.merge-btn:hover:not(:disabled) {
+  background-color: #27ae60;
+}
+
+.close-btn {
+  background-color: transparent;
+  color: var(--accent-danger);
+  border: 1px solid var(--accent-danger);
+}
+
+.close-btn:hover:not(:disabled) {
+  background-color: rgba(231, 76, 60, 0.1);
+}
+
+.merge-options {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.merge-option {
+  background-color: var(--accent-success);
+  color: white;
+}
+
+.merge-option:hover:not(:disabled) {
+  background-color: #27ae60;
+}
+
+.cancel-btn {
+  background-color: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+}
+
+.cancel-btn:hover {
+  background-color: var(--bg-tertiary);
+}
+
+.pr-detail-error {
+  padding: 12px 20px;
+  background-color: rgba(231, 76, 60, 0.1);
+  border-bottom: 1px solid var(--accent-danger);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.dismiss-btn {
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-danger);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.pr-body {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
 /* Loading & Empty States */
 .loading,
 .empty-state {

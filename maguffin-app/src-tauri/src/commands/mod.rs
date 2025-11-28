@@ -306,6 +306,90 @@ pub async fn checkout_pull_request(state: State<'_, AppState>, number: i64) -> R
     Ok(())
 }
 
+/// Create a new pull request.
+#[tauri::command]
+pub async fn create_pull_request(
+    state: State<'_, AppState>,
+    title: String,
+    body: Option<String>,
+    head: String,
+    base: String,
+    draft: bool,
+) -> Result<i64, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service
+        .create_pr(title, body, head, base, draft)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Merge a pull request.
+#[tauri::command]
+pub async fn merge_pull_request(
+    state: State<'_, AppState>,
+    pr_id: String,
+    merge_method: String,
+) -> Result<bool, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let method = match merge_method.to_uppercase().as_str() {
+        "MERGE" => crate::domain::pr::MergeMethod::Merge,
+        "SQUASH" => crate::domain::pr::MergeMethod::Squash,
+        "REBASE" => crate::domain::pr::MergeMethod::Rebase,
+        _ => return Err(format!("Invalid merge method: {}", merge_method)),
+    };
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service
+        .merge_pr(pr_id, method)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Close a pull request without merging.
+#[tauri::command]
+pub async fn close_pull_request(
+    state: State<'_, AppState>,
+    pr_id: String,
+) -> Result<bool, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service.close_pr(pr_id).await.map_err(|e| e.to_string())
+}
+
 /// List all stacks in the current repository.
 #[tauri::command]
 pub async fn list_stacks(state: State<'_, AppState>) -> Result<Vec<Stack>, String> {
@@ -442,6 +526,9 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         list_pull_requests,
         get_pull_request,
         checkout_pull_request,
+        create_pull_request,
+        merge_pull_request,
+        close_pull_request,
         list_stacks,
         create_stack,
         create_stack_branch,

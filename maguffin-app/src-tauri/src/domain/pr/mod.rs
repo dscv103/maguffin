@@ -9,6 +9,9 @@ use serde::{Deserialize, Serialize};
 /// Represents a GitHub pull request.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PullRequest {
+    /// GraphQL node ID
+    pub id: String,
+
     /// PR number
     pub number: i64,
 
