@@ -6,3 +6,4 @@ export { useStacks } from "./useStacks";
 export { useRepository } from "./useRepository";
 export { useTheme } from "./useTheme";
 export { useKeyboardShortcuts, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS } from "./useKeyboardShortcuts";
+export { useSync } from "./useSync";

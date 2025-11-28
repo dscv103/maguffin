@@ -156,3 +156,16 @@ export interface RecentRepository {
   name: string;
   last_opened: string;
 }
+
+// Sync status types matching Rust's serde(tag = "status") serialization
+export type SyncStatus =
+  | { status: "idle"; last_sync: string | null }
+  | { status: "in_progress"; started_at: string; current_task: string | null }
+  | { status: "failed"; error: string; failed_at: string; failure_count: number }
+  | { status: "rate_limited"; resets_at: string };
+
+export interface SyncConfig {
+  interval_secs: number;
+  enabled: boolean;
+  sync_on_startup: boolean;
+}

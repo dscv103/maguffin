@@ -4,13 +4,15 @@
 //! frontend UI to the Rust backend.
 
 use crate::cache::{Cache, RecentRepository};
+use crate::config::SyncConfig;
 use crate::domain::pr::PullRequestDetails;
 use crate::domain::repo::GitHubRemote;
 use crate::domain::stack::{RestackResult, Stack};
+use crate::domain::sync::SyncStatus;
 use crate::domain::{AuthState, PullRequest, Repository, SyncState};
 use crate::error::AppError;
 use crate::git::{Git2Backend, GitOperations};
-use crate::github::{AuthService, GitHubClient, PrService, StackService};
+use crate::github::{AuthService, GitHubClient, PrService, StackService, SyncService};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::State;
@@ -23,6 +25,7 @@ use tokio::sync::RwLock;
 /// - GitHubClient for API calls
 /// - Current repository context
 /// - Cache for persistent storage
+/// - SyncService for background synchronization
 pub struct AppState {
     /// Authentication service
     auth_service: AuthService,
@@ -35,6 +38,9 @@ pub struct AppState {
 
     /// Local cache for recent repositories and settings
     cache: Arc<Cache>,
+
+    /// Background sync service
+    sync_service: Arc<SyncService>,
 }
 
 /// Context for the currently opened repository.
@@ -69,6 +75,7 @@ impl AppState {
                 tracing::warn!("Failed to create GitHub client, using default: {}", e);
                 GitHubClient::default()
             });
+        let github_client = Arc::new(github_client);
 
         let auth_service = AuthService::new().unwrap_or_else(|e| {
             tracing::warn!("Failed to create AuthService, using default: {}", e);
@@ -78,11 +85,15 @@ impl AppState {
         // Create cache in the user's data directory
         let cache = Self::create_cache();
 
+        // Create sync service with default config
+        let sync_service = SyncService::new(github_client.clone(), SyncConfig::default());
+
         Self {
             auth_service,
-            github_client: Arc::new(github_client),
+            github_client,
             current_repo: Arc::new(RwLock::new(None)),
             cache: Arc::new(cache),
+            sync_service: Arc::new(sync_service),
         }
     }
 
@@ -200,6 +211,12 @@ pub async fn open_repository(
         default_branch: default_branch.clone(),
     };
     *state.current_repo.write().await = Some(context);
+
+    // Update sync service with new repository context
+    state
+        .sync_service
+        .set_repository(github_remote.owner.clone(), github_remote.name.clone())
+        .await;
 
     // Save to recent repositories
     let path_str = path.to_string_lossy().to_string();
@@ -673,6 +690,62 @@ pub async fn create_stack_pr(
     Ok(pr_number)
 }
 
+// ============================================================================
+// Sync Commands
+// ============================================================================
+
+/// Get the current sync status.
+#[tauri::command]
+pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus, String> {
+    Ok(state.sync_service.status().await)
+}
+
+/// Start background sync.
+#[tauri::command]
+pub async fn start_sync(state: State<'_, AppState>) -> Result<(), String> {
+    state.sync_service.start().await;
+    Ok(())
+}
+
+/// Stop background sync.
+#[tauri::command]
+pub async fn stop_sync(state: State<'_, AppState>) -> Result<(), String> {
+    state
+        .sync_service
+        .stop()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Trigger an immediate sync.
+#[tauri::command]
+pub async fn sync_now(state: State<'_, AppState>) -> Result<(), String> {
+    state
+        .sync_service
+        .sync_now()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Update sync configuration.
+#[tauri::command]
+pub async fn update_sync_config(
+    state: State<'_, AppState>,
+    interval_secs: u64,
+    enabled: bool,
+) -> Result<(), String> {
+    let config = SyncConfig {
+        interval_secs,
+        enabled,
+        sync_on_startup: true,
+    };
+    state
+        .sync_service
+        .update_config(config)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Generate all command handlers for registration.
 pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -695,6 +768,11 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         create_stack_branch,
         create_stack_pr,
         restack,
+        get_sync_status,
+        start_sync,
+        stop_sync,
+        sync_now,
+        update_sync_config,
     ]
 }
 

@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp } from "./components";
-import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS } from "./hooks";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator } from "./components";
+import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
 import type { PullRequest, Stack } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
@@ -11,11 +11,19 @@ function App() {
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
   const { theme, setTheme, toggleTheme } = useTheme();
+  const { status: syncStatus, syncNow, loading: syncLoading, startSync, updateConfig } = useSync();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const isAuthenticated = authState.type === "authenticated";
+
+  // Start sync when authenticated and repository is open
+  useEffect(() => {
+    if (isAuthenticated && repository) {
+      startSync();
+    }
+  }, [isAuthenticated, repository, startSync]);
 
   // Define keyboard shortcut callbacks
   const onNavigateDashboard = useCallback(() => setCurrentView("dashboard"), []);
@@ -126,6 +134,13 @@ function App() {
         </ul>
 
         <div className="sidebar-footer">
+          {repository && (
+            <SyncStatusIndicator
+              status={syncStatus}
+              onSyncNow={syncNow}
+              loading={syncLoading}
+            />
+          )}
           <ThemeToggle />
           <AuthView />
         </div>
@@ -189,6 +204,30 @@ function App() {
                         ☀️ Light
                       </button>
                     </div>
+                  </div>
+                </section>
+
+                <section className="settings-section">
+                  <h2>Synchronization</h2>
+                  <div className="setting-item">
+                    <label className="setting-label">Sync Interval</label>
+                    <select
+                      className="setting-select"
+                      defaultValue="60"
+                      onChange={(e) => updateConfig(parseInt(e.target.value, 10), true)}
+                    >
+                      <option value="30">30 seconds</option>
+                      <option value="60">1 minute</option>
+                      <option value="120">2 minutes</option>
+                      <option value="300">5 minutes</option>
+                    </select>
+                  </div>
+                  <div className="setting-item">
+                    <p className="setting-description">
+                      Current status: {syncStatus.status === "idle" 
+                        ? `Idle${syncStatus.last_sync ? ` (last sync: ${new Date(syncStatus.last_sync).toLocaleTimeString()})` : ""}`
+                        : syncStatus.status}
+                    </p>
                   </div>
                 </section>
 

@@ -1373,3 +1373,90 @@ body {
   flex-direction: column;
   gap: 12px;
 }
+
+/* Sync Status Indicator */
+.sync-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.sync-status-indicator .sync-icon {
+  font-size: 1rem;
+}
+
+.sync-status-indicator .sync-label {
+  flex: 1;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync-status-indicator.sync-idle .sync-icon {
+  color: var(--accent-success);
+}
+
+.sync-status-indicator.sync-in-progress .sync-icon {
+  color: var(--accent-primary);
+  animation: spin 1s linear infinite;
+}
+
+.sync-status-indicator.sync-failed .sync-icon {
+  color: var(--accent-danger);
+}
+
+.sync-status-indicator.sync-rate-limited .sync-icon {
+  color: var(--accent-warning);
+}
+
+.sync-now-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.sync-now-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--accent-primary);
+}
+
+.sync-now-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Settings select */
+.setting-select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  min-width: 150px;
+}
+
+.setting-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
