@@ -4,14 +4,15 @@
 //! bridging the domain types with the GitHub GraphQL API.
 
 use crate::domain::pr::{
-    Author, ChangeType, ChangedFile, Commit, Label, MergeMethod, Mergeable, PrState, PullRequest,
-    PullRequestDetails, Review, ReviewDecision, ReviewState,
+    Author, ChangeType, ChangedFile, CheckConclusion, CheckRun, CheckRunStatus, CheckState,
+    CheckStatus, Commit, Label, MergeMethod, Mergeable, PrState, PullRequest, PullRequestDetails,
+    Review, ReviewDecision, ReviewState,
 };
 use crate::error::{GitHubError, Result};
 use crate::github::queries::{
     ClosePullRequestVariables, CreatePullRequestVariables, GetPullRequestDetailsResponse,
     GetPullRequestDetailsVariables, GetRepositoryIdResponse, GetRepositoryIdVariables,
-    GqlPullRequestDetails, GqlPullRequestNode, ListPullRequestsResponse,
+    GqlCheckContext, GqlPullRequestDetails, GqlPullRequestNode, ListPullRequestsResponse,
     ListPullRequestsVariables, MergePullRequestVariables, CLOSE_PULL_REQUEST, CREATE_PULL_REQUEST,
     GET_PULL_REQUEST_DETAILS, GET_REPOSITORY_ID, LIST_PULL_REQUESTS, MERGE_PULL_REQUEST,
 };
@@ -304,6 +305,39 @@ impl PrService {
             .map(|dt| dt.with_timezone(&Utc))
             .unwrap_or_else(|_| Utc::now());
 
+        // Extract check status from the last (head) commit
+        let check_status = pr
+            .commits
+            .nodes
+            .as_ref()
+            .and_then(|commits| commits.last())
+            .and_then(|commit_node| commit_node.commit.status_check_rollup.as_ref())
+            .map(|rollup| {
+                let overall_state = match rollup.state.as_deref() {
+                    Some("SUCCESS") => CheckState::Success,
+                    Some("PENDING") | Some("EXPECTED") => CheckState::Pending,
+                    Some("FAILURE") | Some("ERROR") => CheckState::Failure,
+                    _ => CheckState::Unknown,
+                };
+
+                let checks: Vec<CheckRun> = rollup
+                    .contexts
+                    .as_ref()
+                    .and_then(|ctx| ctx.nodes.as_ref())
+                    .map(|nodes| {
+                        nodes
+                            .iter()
+                            .filter_map(|ctx| Self::convert_check_context(ctx))
+                            .collect()
+                    })
+                    .unwrap_or_default();
+
+                CheckStatus {
+                    state: overall_state,
+                    checks,
+                }
+            });
+
         let commits: Vec<Commit> = pr
             .commits
             .nodes
@@ -422,6 +456,72 @@ impl PrService {
             files,
             reviews,
             review_requests,
+            check_status,
+        }
+    }
+
+    /// Convert a GraphQL check context to domain CheckRun.
+    fn convert_check_context(ctx: &GqlCheckContext) -> Option<CheckRun> {
+        match ctx {
+            GqlCheckContext::CheckRun(check) => {
+                let name = check.name.clone()?;
+                let typename = check.typename.as_deref();
+
+                // Check runs have status and conclusion
+                if typename == Some("CheckRun") {
+                    let status = match check.status.as_deref() {
+                        Some("QUEUED") => CheckRunStatus::Queued,
+                        Some("IN_PROGRESS") => CheckRunStatus::InProgress,
+                        _ => CheckRunStatus::Completed,
+                    };
+
+                    let conclusion = check.conclusion.as_deref().map(|c| match c {
+                        "SUCCESS" => CheckConclusion::Success,
+                        "FAILURE" => CheckConclusion::Failure,
+                        "NEUTRAL" => CheckConclusion::Neutral,
+                        "CANCELLED" => CheckConclusion::Cancelled,
+                        "SKIPPED" => CheckConclusion::Skipped,
+                        "TIMED_OUT" => CheckConclusion::TimedOut,
+                        "ACTION_REQUIRED" => CheckConclusion::ActionRequired,
+                        _ => CheckConclusion::Neutral,
+                    });
+
+                    Some(CheckRun {
+                        name,
+                        status,
+                        conclusion,
+                        details_url: check.details_url.clone(),
+                    })
+                } else {
+                    None
+                }
+            }
+            GqlCheckContext::StatusContext(status) => {
+                let typename = status.typename.as_deref();
+                
+                // Status contexts have context and state
+                if typename == Some("StatusContext") {
+                    let name = status.context.clone()?;
+                    
+                    let (status_val, conclusion) = match status.state.as_deref() {
+                        Some("SUCCESS") => (CheckRunStatus::Completed, Some(CheckConclusion::Success)),
+                        Some("FAILURE") | Some("ERROR") => {
+                            (CheckRunStatus::Completed, Some(CheckConclusion::Failure))
+                        }
+                        Some("PENDING") | Some("EXPECTED") => (CheckRunStatus::InProgress, None),
+                        _ => (CheckRunStatus::Completed, Some(CheckConclusion::Neutral)),
+                    };
+
+                    Some(CheckRun {
+                        name,
+                        status: status_val,
+                        conclusion,
+                        details_url: status.target_url.clone(),
+                    })
+                } else {
+                    None
+                }
+            }
         }
     }
 }

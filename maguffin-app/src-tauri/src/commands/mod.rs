@@ -4,6 +4,7 @@
 //! frontend UI to the Rust backend.
 
 use crate::cache::{Cache, RecentRepository};
+use crate::domain::pr::PullRequestDetails;
 use crate::domain::repo::GitHubRemote;
 use crate::domain::stack::{RestackResult, Stack};
 use crate::domain::{AuthState, PullRequest, Repository, SyncState};
@@ -292,6 +293,31 @@ pub async fn get_pull_request(
         .map_err(|e| e.to_string())?;
 
     Ok(details.pr)
+}
+
+/// Get full details for a specific pull request including CI status.
+#[tauri::command]
+pub async fn get_pull_request_details(
+    state: State<'_, AppState>,
+    number: i64,
+) -> Result<PullRequestDetails, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service
+        .get_pr_details(number)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// Checkout a PR branch locally.
@@ -659,6 +685,7 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         remove_recent_repository,
         list_pull_requests,
         get_pull_request,
+        get_pull_request_details,
         checkout_pull_request,
         create_pull_request,
         merge_pull_request,

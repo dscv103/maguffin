@@ -1,7 +1,8 @@
 import { useState } from "react";
-import type { PullRequest, MergeMethod, Repository } from "../types";
-import { usePullRequestActions } from "../hooks";
+import type { PullRequest, MergeMethod, Repository, CheckStatus } from "../types";
+import { usePullRequestActions, usePullRequestDetails } from "../hooks";
 import { Markdown } from "./Markdown";
+import { CheckStatusDisplay } from "./CheckStatus";
 
 interface PRDetailPanelProps {
   pr: PullRequest;
@@ -12,7 +13,11 @@ interface PRDetailPanelProps {
 
 export function PRDetailPanel({ pr, repository, onClose, onActionComplete }: PRDetailPanelProps) {
   const { loading, error, mergePR, closePR, checkoutPR, clearError } = usePullRequestActions();
+  const { details, loading: detailsLoading } = usePullRequestDetails(pr.number);
   const [showMergeOptions, setShowMergeOptions] = useState(false);
+
+  // Use check status from details if available
+  const checkStatus: CheckStatus | null = details?.check_status ?? null;
 
   const handleCheckout = async () => {
     const success = await checkoutPR(pr.number);
@@ -101,6 +106,15 @@ export function PRDetailPanel({ pr, repository, onClose, onActionComplete }: PRD
               ? "No (has conflicts)"
               : "Unknown"}
           </p>
+        </div>
+
+        <div className="pr-ci-status">
+          <p><strong>CI/Checks:</strong></p>
+          {detailsLoading ? (
+            <p className="loading-text">Loading checks...</p>
+          ) : (
+            <CheckStatusDisplay checkStatus={checkStatus} />
+          )}
         </div>
       </div>
 

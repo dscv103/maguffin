@@ -89,6 +89,27 @@ query GetPullRequestDetails($owner: String!, $repo: String!, $number: Int!) {
               name
               date
             }
+            statusCheckRollup {
+              state
+              contexts(first: 50) {
+                nodes {
+                  ... on CheckRun {
+                    __typename
+                    name
+                    status
+                    conclusion
+                    detailsUrl
+                  }
+                  ... on StatusContext {
+                    __typename
+                    context
+                    state
+                    targetUrl
+                    description
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -345,12 +366,59 @@ pub struct GqlCommitAuthor {
     pub date: Option<String>,
 }
 
+/// Check run context from status rollup.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GqlCheckRun {
+    #[serde(rename = "__typename")]
+    pub typename: Option<String>,
+    pub name: Option<String>,
+    pub status: Option<String>,
+    pub conclusion: Option<String>,
+    pub details_url: Option<String>,
+}
+
+/// Status context from status rollup (legacy commit status).
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct GqlStatusContext {
+    #[serde(rename = "__typename")]
+    pub typename: Option<String>,
+    pub context: Option<String>,
+    pub state: Option<String>,
+    pub target_url: Option<String>,
+    pub description: Option<String>,
+}
+
+/// Union type for check run or status context.
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum GqlCheckContext {
+    CheckRun(GqlCheckRun),
+    StatusContext(GqlStatusContext),
+}
+
+/// Contexts connection in status rollup.
+#[derive(Debug, Clone, Deserialize)]
+pub struct GqlContextsConnection {
+    pub nodes: Option<Vec<GqlCheckContext>>,
+}
+
+/// Status check rollup for a commit.
+#[derive(Debug, Clone, Deserialize)]
+pub struct GqlStatusCheckRollup {
+    pub state: Option<String>,
+    pub contexts: Option<GqlContextsConnection>,
+}
+
 /// Commit details.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GqlCommitDetails {
     pub oid: String,
     pub message: String,
     pub author: Option<GqlCommitAuthor>,
+    pub status_check_rollup: Option<GqlStatusCheckRollup>,
 }
 
 /// Commit node wrapper.
