@@ -166,7 +166,7 @@ pub async fn open_repository(
         }
     })
     .await
-    .map_err(|e| format!("Git operation panicked: {:?}", e))??;
+    .map_err(|e| format!("Git operation task failed: {:?}", e))??;
 
     // Store the repo context
     let context = RepoContext {
@@ -363,7 +363,7 @@ pub async fn create_stack(
         Git2Backend::open(&repo_path).map_err(|e| e.to_string())
     })
     .await
-    .map_err(|e| format!("Task panicked: {:?}", e))??;
+    .map_err(|e| format!("Git task failed: {:?}", e))??;
 
     let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
 
@@ -395,7 +395,7 @@ pub async fn create_stack_branch(
         Git2Backend::open(&repo_path).map_err(|e| e.to_string())
     })
     .await
-    .map_err(|e| format!("Task panicked: {:?}", e))??;
+    .map_err(|e| format!("Git task failed: {:?}", e))??;
 
     let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
     let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
@@ -425,7 +425,7 @@ pub async fn restack(state: State<'_, AppState>, stack_id: String) -> Result<Res
         Git2Backend::open(&repo_path).map_err(|e| e.to_string())
     })
     .await
-    .map_err(|e| format!("Task panicked: {:?}", e))??;
+    .map_err(|e| format!("Git task failed: {:?}", e))??;
 
     let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
     let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
