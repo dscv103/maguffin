@@ -7,8 +7,8 @@ type View = "auth" | "dashboard" | "stacks" | "settings";
 
 function App() {
   const { authState } = useAuth();
-  const { repository, loading: repoLoading, error: repoError, openRepository, clearRepository } = useRepository();
-  const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks();
+  const { repository, loading: repoLoading, error: repoError, openRepository, clearRepository, clearError: clearRepoError } = useRepository();
+  const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
 
@@ -37,6 +37,7 @@ function App() {
             error={repoError}
             onOpenRepository={openRepository}
             onClearRepository={clearRepository}
+            onClearError={clearRepoError}
           />
         </div>
 

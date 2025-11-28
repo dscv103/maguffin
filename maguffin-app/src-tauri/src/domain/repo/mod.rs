@@ -39,7 +39,7 @@ impl Repository {
 
 /// Sync state of the repository relative to remote.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum SyncState {
     /// Up to date with remote
     UpToDate,

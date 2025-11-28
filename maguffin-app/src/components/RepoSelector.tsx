@@ -7,6 +7,7 @@ interface RepoSelectorProps {
   error: string | null;
   onOpenRepository: (path: string) => Promise<Repository | null>;
   onClearRepository: () => void;
+  onClearError?: () => void;
 }
 
 export function RepoSelector({
@@ -15,9 +16,18 @@ export function RepoSelector({
   error,
   onOpenRepository,
   onClearRepository,
+  onClearError,
 }: RepoSelectorProps) {
   const [path, setPath] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+
+  const handlePathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPath(e.target.value);
+    // Clear error when user starts typing a new path
+    if (error && onClearError) {
+      onClearError();
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,7 +83,7 @@ export function RepoSelector({
           <input
             type="text"
             value={path}
-            onChange={(e) => setPath(e.target.value)}
+            onChange={handlePathChange}
             placeholder="Enter repository path..."
             className="repo-path-input"
             autoFocus

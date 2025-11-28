@@ -28,11 +28,16 @@ export function useRepository() {
     setError(null);
   }, []);
 
+  const clearError = useCallback(() => {
+    setError(null);
+  }, []);
+
   return {
     repository,
     loading,
     error,
     openRepository,
     clearRepository,
+    clearError,
   };
 }

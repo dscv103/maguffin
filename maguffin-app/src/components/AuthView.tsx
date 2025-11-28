@@ -15,11 +15,14 @@ export function AuthView({ onAuthenticated }: AuthViewProps) {
   }, [authState, onAuthenticated]);
 
   // Poll for auth completion when in pending state
+  // Extract interval from pending state (only exists when type === "pending")
+  const pendingInterval = authState.type === "pending" ? authState.interval : undefined;
+
   useEffect(() => {
     if (authState.type !== "pending") return;
 
     // Use the interval from the auth state, with a minimum of 5 seconds
-    const pollInterval = Math.max((authState.interval || 5) * 1000, 5000);
+    const pollInterval = Math.max((pendingInterval || 5) * 1000, 5000);
 
     const interval = setInterval(async () => {
       const newState = await pollDeviceFlow();
@@ -29,7 +32,7 @@ export function AuthView({ onAuthenticated }: AuthViewProps) {
     }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [authState.type, authState.interval, pollDeviceFlow]);
+  }, [authState.type, pendingInterval, pollDeviceFlow]);
 
   if (loading) {
     return (
