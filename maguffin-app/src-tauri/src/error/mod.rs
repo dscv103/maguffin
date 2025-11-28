@@ -31,6 +31,10 @@ pub enum AppError {
     /// Internal error
     #[error("Internal error: {0}")]
     Internal(String),
+
+    /// JSON serialization error
+    #[error("JSON error: {0}")]
+    Json(#[from] serde_json::Error),
 }
 
 /// Errors related to Git operations.

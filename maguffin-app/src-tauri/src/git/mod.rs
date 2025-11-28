@@ -56,6 +56,135 @@ impl Git2Backend {
     pub fn workdir(&self) -> Option<&Path> {
         self.repo.workdir()
     }
+
+    /// Get the HEAD SHA of a branch.
+    pub fn get_head_sha(&self, branch: &str) -> Result<String> {
+        let branch = self
+            .repo
+            .find_branch(branch, git2::BranchType::Local)
+            .map_err(|e| GitError::Branch(format!("Branch not found: {}", e)))?;
+
+        let commit = branch
+            .get()
+            .peel_to_commit()
+            .map_err(|e| GitError::Branch(format!("Failed to get commit: {}", e)))?;
+
+        Ok(commit.id().to_string())
+    }
+
+    /// Check if one branch is an ancestor of another.
+    pub fn is_ancestor(&self, ancestor: &str, descendant: &str) -> Result<bool> {
+        let ancestor_oid = self
+            .repo
+            .revparse_single(&format!("refs/heads/{}", ancestor))
+            .map_err(|e| GitError::Branch(format!("Ancestor branch not found: {}", e)))?
+            .id();
+
+        let descendant_oid = self
+            .repo
+            .revparse_single(&format!("refs/heads/{}", descendant))
+            .map_err(|e| GitError::Branch(format!("Descendant branch not found: {}", e)))?
+            .id();
+
+        let result = self
+            .repo
+            .graph_descendant_of(descendant_oid, ancestor_oid)
+            .map_err(|e| GitError::Branch(format!("Failed to check ancestry: {}", e)))?;
+
+        Ok(result)
+    }
+
+    /// Check if a branch needs rebasing onto its parent.
+    pub fn needs_rebase(&self, branch: &str, parent: &str) -> Result<bool> {
+        let parent_oid = self
+            .repo
+            .revparse_single(&format!("refs/heads/{}", parent))
+            .map_err(|e| GitError::Branch(format!("Parent branch not found: {}", e)))?
+            .id();
+
+        let branch_ref = self
+            .repo
+            .find_branch(branch, git2::BranchType::Local)
+            .map_err(|e| GitError::Branch(format!("Branch not found: {}", e)))?;
+
+        let branch_commit = branch_ref
+            .get()
+            .peel_to_commit()
+            .map_err(|e| GitError::Branch(format!("Failed to get commit: {}", e)))?;
+
+        // Find the merge base
+        let merge_base = self
+            .repo
+            .merge_base(branch_commit.id(), parent_oid)
+            .map_err(|e| GitError::Branch(format!("Failed to find merge base: {}", e)))?;
+
+        // If the merge base is the same as the parent head, no rebase needed
+        Ok(merge_base != parent_oid)
+    }
+
+    /// Perform a rebase of a branch onto another branch.
+    /// Note: This is a simplified implementation. Complex rebases may require CLI fallback.
+    pub fn rebase(&self, branch: &str, onto: &str) -> Result<()> {
+        // For complex rebases, we shell out to git CLI
+        let workdir = self
+            .workdir()
+            .ok_or_else(|| GitError::RepositoryNotFound("No working directory".to_string()))?;
+
+        let output = std::process::Command::new("git")
+            .args(["rebase", onto, branch])
+            .current_dir(workdir)
+            .output()
+            .map_err(|e| GitError::RebaseFailed(e.to_string()))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.contains("conflict") || stderr.contains("CONFLICT") {
+                Err(GitError::Conflict {
+                    files: Vec::new(),
+                }
+                .into())
+            } else {
+                Err(GitError::RebaseFailed(stderr.to_string()).into())
+            }
+        }
+    }
+
+    /// Abort an in-progress rebase.
+    pub fn abort_rebase(&self) -> Result<()> {
+        let workdir = self
+            .workdir()
+            .ok_or_else(|| GitError::RepositoryNotFound("No working directory".to_string()))?;
+
+        std::process::Command::new("git")
+            .args(["rebase", "--abort"])
+            .current_dir(workdir)
+            .output()
+            .map_err(|e| GitError::RebaseFailed(e.to_string()))?;
+
+        Ok(())
+    }
+
+    /// Force push a branch to remote.
+    pub fn force_push(&self, branch: &str, remote: &str) -> Result<()> {
+        let workdir = self
+            .workdir()
+            .ok_or_else(|| GitError::RepositoryNotFound("No working directory".to_string()))?;
+
+        let output = std::process::Command::new("git")
+            .args(["push", "--force-with-lease", remote, branch])
+            .current_dir(workdir)
+            .output()
+            .map_err(|e| GitError::Remote(e.to_string()))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            Err(GitError::Remote(stderr.to_string()).into())
+        }
+    }
 }
 
 impl GitOperations for Git2Backend {
