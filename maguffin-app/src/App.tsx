@@ -7,7 +7,7 @@ type View = "auth" | "dashboard" | "stacks" | "settings";
 
 function App() {
   const { authState } = useAuth();
-  const { repository, loading: repoLoading, error: repoError, openRepository, clearRepository, clearError: clearRepoError } = useRepository();
+  const { repository, recentRepositories, loading: repoLoading, error: repoError, openRepository, removeRecentRepository, clearRepository, clearError: clearRepoError } = useRepository();
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
   const [currentView, setCurrentView] = useState<View>("dashboard");
@@ -39,10 +39,12 @@ function App() {
           <h1 className="app-logo">Maguffin</h1>
           <RepoSelector
             repository={repository}
+            recentRepositories={recentRepositories}
             loading={repoLoading}
             error={repoError}
             onOpenRepository={openRepository}
             onClearRepository={clearRepository}
+            onRemoveRecentRepository={removeRecentRepository}
             onClearError={clearRepoError}
           />
         </div>

@@ -152,6 +152,26 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Implemented PR action commands (create, merge, close) and stack PR creation. Added PRDetailPanel with action buttons. Added close PR GraphQL mutation.",
     "timestamp": "2025-11-28T07:30:00Z",
     "validation": "All 50 unit tests pass. Frontend builds successfully. PR actions (create, merge, close) and stack PR creation commands implemented."
+  },
+  {
+    "from_agent": "feature-developer",
+    "to_agent": "feature-developer",
+    "phase": "implementation-milestone-7",
+    "artefacts": [
+      "maguffin-app/src-tauri/src/commands/mod.rs",
+      "maguffin-app/src-tauri/src/cache/mod.rs",
+      "maguffin-app/src-tauri/Cargo.toml",
+      "maguffin-app/src/components/PRDashboard.tsx",
+      "maguffin-app/src/components/PRDetailPanel.tsx",
+      "maguffin-app/src/components/Markdown.tsx",
+      "maguffin-app/src/components/RepoSelector.tsx",
+      "maguffin-app/src/hooks/useRepository.ts",
+      "maguffin-app/src/types/index.ts",
+      "maguffin-app/src/styles.css"
+    ],
+    "trigger": "Implemented PR sorting, Markdown rendering, and recent repositories features. Added sort controls to PRDashboard, Markdown component for PR descriptions, and recent repos list with cache storage.",
+    "timestamp": "2025-11-28T17:30:00Z",
+    "validation": "All 52 unit tests pass. Frontend builds successfully. PR sorting, Markdown rendering, and recent repositories features complete."
   }
 ]
 ```

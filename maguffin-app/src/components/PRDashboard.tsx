@@ -7,9 +7,49 @@ interface PRDashboardProps {
   onSelectPR?: (pr: PullRequest) => void;
 }
 
+type SortField = "updated" | "created" | "title" | "comments";
+type SortDirection = "asc" | "desc";
+
 export function PRDashboard({ onSelectPR }: PRDashboardProps) {
   const { pullRequests, loading, error, refresh } = usePullRequests();
   const [filter, setFilter] = React.useState<"all" | "mine" | "review">("all");
+  const [sortField, setSortField] = React.useState<SortField>("updated");
+  const [sortDirection, setSortDirection] = React.useState<SortDirection>("desc");
+
+  // Sort pull requests based on current sort settings
+  const sortedPRs = React.useMemo(() => {
+    if (!pullRequests.length) return pullRequests;
+
+    return [...pullRequests].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case "updated":
+          comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          break;
+        case "created":
+          comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+          break;
+        case "title":
+          comparison = a.title.localeCompare(b.title);
+          break;
+        case "comments":
+          // Sort by number of commits as a proxy for activity
+          comparison = a.commit_count - b.commit_count;
+          break;
+      }
+
+      return sortDirection === "desc" ? -comparison : comparison;
+    });
+  }, [pullRequests, sortField, sortDirection]);
+
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSortField(e.target.value as SortField);
+  };
+
+  const toggleSortDirection = () => {
+    setSortDirection(prev => prev === "desc" ? "asc" : "desc");
+  };
 
   if (loading) {
     return (
@@ -54,6 +94,27 @@ export function PRDashboard({ onSelectPR }: PRDashboardProps) {
               Needs review
             </button>
           </div>
+          <div className="sort-controls">
+            <select
+              value={sortField}
+              onChange={handleSortChange}
+              className="sort-select"
+              aria-label="Sort by"
+            >
+              <option value="updated">Updated</option>
+              <option value="created">Created</option>
+              <option value="title">Title</option>
+              <option value="comments">Activity</option>
+            </select>
+            <button
+              onClick={toggleSortDirection}
+              className="sort-direction-btn"
+              aria-label={`Sort ${sortDirection === "desc" ? "descending" : "ascending"}`}
+              title={`Sort ${sortDirection === "desc" ? "newest first" : "oldest first"}`}
+            >
+              {sortDirection === "desc" ? "↓" : "↑"}
+            </button>
+          </div>
           <button onClick={refresh} className="refresh-btn">
             ↻ Refresh
           </button>
@@ -61,12 +122,12 @@ export function PRDashboard({ onSelectPR }: PRDashboardProps) {
       </header>
 
       <div className="pr-list">
-        {pullRequests.length === 0 ? (
+        {sortedPRs.length === 0 ? (
           <div className="empty-state">
             <p>No pull requests found</p>
           </div>
         ) : (
-          pullRequests.map((pr) => (
+          sortedPRs.map((pr) => (
             <PullRequestCard key={pr.number} pr={pr} onClick={onSelectPR} />
           ))
         )}

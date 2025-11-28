@@ -130,3 +130,11 @@ export type SyncState =
   | { type: "behind"; commits: number }
   | { type: "diverged"; ahead: number; behind: number }
   | { type: "unknown" };
+
+// Recent repository
+export interface RecentRepository {
+  path: string;
+  owner: string;
+  name: string;
+  last_opened: string;
+}

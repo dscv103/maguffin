@@ -2368,6 +2368,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "chrono",
+ "dirs",
  "git2",
  "graphql_client",
  "keyring",

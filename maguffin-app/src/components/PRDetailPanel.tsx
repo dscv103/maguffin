@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { PullRequest, MergeMethod, Repository } from "../types";
 import { usePullRequestActions } from "../hooks";
+import { Markdown } from "./Markdown";
 
 interface PRDetailPanelProps {
   pr: PullRequest;
@@ -66,7 +67,11 @@ export function PRDetailPanel({ pr, repository, onClose, onActionComplete }: PRD
       )}
 
       <div className="pr-detail-content">
-        <p className="pr-body">{pr.body || "No description provided."}</p>
+        {pr.body ? (
+          <Markdown content={pr.body} className="pr-body" />
+        ) : (
+          <p className="pr-body-empty">No description provided.</p>
+        )}
 
         <div className="pr-detail-meta">
           <p>
