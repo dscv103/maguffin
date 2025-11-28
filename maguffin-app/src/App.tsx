@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector } from "./components";
-import { useAuth, useStacks, useRepository, usePullRequests } from "./hooks";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle } from "./components";
+import { useAuth, useStacks, useRepository, usePullRequests, useTheme } from "./hooks";
 import type { PullRequest, Stack } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
@@ -10,6 +10,7 @@ function App() {
   const { repository, recentRepositories, loading: repoLoading, error: repoError, openRepository, removeRecentRepository, clearRepository, clearError: clearRepoError } = useRepository();
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
+  const { theme, setTheme } = useTheme();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
 
@@ -80,6 +81,7 @@ function App() {
         </ul>
 
         <div className="sidebar-footer">
+          <ThemeToggle />
           <AuthView />
         </div>
       </nav>
@@ -123,7 +125,32 @@ function App() {
             {currentView === "settings" && (
               <div className="settings-view">
                 <h1>Settings</h1>
-                <p className="coming-soon">Settings coming soon...</p>
+                
+                <section className="settings-section">
+                  <h2>Appearance</h2>
+                  <div className="setting-item">
+                    <label className="setting-label">Theme</label>
+                    <div className="theme-options">
+                      <button 
+                        className={`theme-option ${theme === "dark" ? "active" : ""}`}
+                        onClick={() => setTheme("dark")}
+                      >
+                        🌙 Dark
+                      </button>
+                      <button 
+                        className={`theme-option ${theme === "light" ? "active" : ""}`}
+                        onClick={() => setTheme("light")}
+                      >
+                        ☀️ Light
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="settings-section">
+                  <h2>About</h2>
+                  <p className="about-text">Maguffin is a cross-platform Git client with a Tower-style PR dashboard and Graphite-style stacked PR workflow.</p>
+                </section>
               </div>
             )}
           </>

@@ -209,7 +209,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 |-------------|------|--------|
 | FR-003 | PR sorting options in UI | ✓ Complete |
 | FR-004 | Markdown rendering for PR body | ✓ Complete |
-| FR-004 | CI/Check status indicators | Not Started |
+| FR-004 | CI/Check status indicators | ✓ Complete |
 | FR-008 | Conflict resolution UI | Not Started |
 | FR-010 | Background sync service | Not Started |
 | NFR-002 | Cross-platform build and testing | Not Tested |
@@ -226,7 +226,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-009 | Stack context in PR description | Not Started |
 | FR-010 | Rate limit handling and backoff | Partial |
 | NFR-001 | Performance benchmarking | Not Started |
-| NFR-004 | Dark/light theme support | Not Started |
+| NFR-004 | Dark/light theme support | ✓ Complete |
 | NFR-004 | Keyboard shortcuts | Not Started |
 
 ### Lower Priority (P2 - Medium)
@@ -238,7 +238,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-009 | PR description template | Not Started |
 | NFR-004 | Onboarding flow | Not Started |
 | NFR-005 | Provider abstraction layer | Partial |
-| - | Settings UI | Placeholder Only |
+| - | Settings UI | ✓ Complete (with theme settings) |
 
 ### Technical Debt
 

@@ -7,6 +7,7 @@
 }
 /* Maguffin - Git Client Styles */
 
+/* Dark theme (default) */
 :root {
   --bg-primary: #1a1a2e;
   --bg-secondary: #16213e;
@@ -19,6 +20,23 @@
   --accent-danger: #e74c3c;
   --border-color: #2d3748;
   --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  color-scheme: dark;
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-primary: #f5f6fa;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #e8ecf1;
+  --text-primary: #1a1a2e;
+  --text-secondary: #4a5568;
+  --accent-primary: #4361ee;
+  --accent-success: #27ae60;
+  --accent-warning: #e67e22;
+  --accent-danger: #c0392b;
+  --border-color: #d1d5db;
+  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  color-scheme: light;
 }
 
 * {
@@ -1186,4 +1204,86 @@ body {
 
 .check-details-link:hover {
   text-decoration: underline;
+}
+
+/* Theme Toggle */
+.theme-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--bg-tertiary);
+}
+
+/* Settings View */
+.settings-view {
+  max-width: 600px;
+}
+
+.settings-view h1 {
+  margin-bottom: 24px;
+}
+
+.settings-section {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.settings-section h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.setting-label {
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.theme-options {
+  display: flex;
+  gap: 8px;
+}
+
+.theme-option {
+  padding: 10px 20px;
+  background-color: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.theme-option:hover {
+  border-color: var(--accent-primary);
+}
+
+.theme-option.active {
+  background-color: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.about-text {
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
