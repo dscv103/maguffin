@@ -9,11 +9,11 @@ use crate::domain::pr::{
 };
 use crate::error::{GitHubError, Result};
 use crate::github::queries::{
-    CreatePullRequestVariables, GetPullRequestDetailsResponse, GetPullRequestDetailsVariables,
-    GetRepositoryIdResponse, GetRepositoryIdVariables, GqlPullRequestDetails, GqlPullRequestNode,
-    ListPullRequestsResponse, ListPullRequestsVariables, MergePullRequestVariables,
-    CREATE_PULL_REQUEST, GET_PULL_REQUEST_DETAILS, GET_REPOSITORY_ID, LIST_PULL_REQUESTS,
-    MERGE_PULL_REQUEST,
+    ClosePullRequestVariables, CreatePullRequestVariables, GetPullRequestDetailsResponse,
+    GetPullRequestDetailsVariables, GetRepositoryIdResponse, GetRepositoryIdVariables,
+    GqlPullRequestDetails, GqlPullRequestNode, ListPullRequestsResponse,
+    ListPullRequestsVariables, MergePullRequestVariables, CLOSE_PULL_REQUEST, CREATE_PULL_REQUEST,
+    GET_PULL_REQUEST_DETAILS, GET_REPOSITORY_ID, LIST_PULL_REQUESTS, MERGE_PULL_REQUEST,
 };
 use crate::github::GitHubClient;
 use chrono::{DateTime, Utc};
@@ -159,6 +159,24 @@ impl PrService {
         Ok(merged)
     }
 
+    /// Close a pull request without merging.
+    pub async fn close_pr(&self, pr_id: String) -> Result<bool> {
+        let variables = ClosePullRequestVariables {
+            pull_request_id: pr_id,
+        };
+
+        let response: serde_json::Value = self
+            .client
+            .query(CLOSE_PULL_REQUEST, serde_json::to_value(variables)?)
+            .await?;
+
+        let state = response["closePullRequest"]["pullRequest"]["state"]
+            .as_str()
+            .unwrap_or("");
+
+        Ok(state == "CLOSED")
+    }
+
     /// Get the repository ID.
     async fn get_repository_id(&self) -> Result<String> {
         let variables = GetRepositoryIdVariables {
@@ -231,6 +249,7 @@ impl PrService {
             .unwrap_or_else(|_| Utc::now());
 
         PullRequest {
+            id: node.id,
             number: node.number,
             title: node.title,
             body: node.body,
@@ -377,6 +396,7 @@ impl PrService {
         let commit_count = commits.len() as i32;
 
         let base_pr = PullRequest {
+            id: pr.id,
             number: pr.number,
             title: pr.title,
             body: pr.body,

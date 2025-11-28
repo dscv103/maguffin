@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { AuthView, PRDashboard, StackList, RepoSelector } from "./components";
-import { useAuth, useStacks, useRepository } from "./hooks";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector } from "./components";
+import { useAuth, useStacks, useRepository, usePullRequests } from "./hooks";
 import type { PullRequest, Stack } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
@@ -9,6 +9,7 @@ function App() {
   const { authState } = useAuth();
   const { repository, loading: repoLoading, error: repoError, openRepository, clearRepository, clearError: clearRepoError } = useRepository();
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
+  const { refresh: refreshPRs } = usePullRequests();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
 
@@ -24,6 +25,11 @@ function App() {
 
   const handleRestack = async (stack: Stack) => {
     await restackStack(stack.id);
+  };
+
+  const handlePRActionComplete = () => {
+    // Refresh the PR list after an action is completed
+    refreshPRs();
   };
 
   return (
@@ -122,27 +128,13 @@ function App() {
         )}
       </main>
 
-      {selectedPR && (
-        <aside className="pr-detail-panel">
-          <header>
-            <h2>#{selectedPR.number} {selectedPR.title}</h2>
-            <button onClick={() => setSelectedPR(null)}>×</button>
-          </header>
-          <div className="pr-detail-content">
-            <p>{selectedPR.body || "No description provided."}</p>
-            <div className="pr-detail-meta">
-              <p>
-                <strong>Author:</strong> {selectedPR.author.login}
-              </p>
-              <p>
-                <strong>Branch:</strong> {selectedPR.head_ref} → {selectedPR.base_ref}
-              </p>
-              <p>
-                <strong>Changes:</strong> +{selectedPR.additions} -{selectedPR.deletions}
-              </p>
-            </div>
-          </div>
-        </aside>
+      {selectedPR && repository && (
+        <PRDetailPanel
+          pr={selectedPR}
+          repository={repository}
+          onClose={() => setSelectedPR(null)}
+          onActionComplete={handlePRActionComplete}
+        />
       )}
     </div>
   );

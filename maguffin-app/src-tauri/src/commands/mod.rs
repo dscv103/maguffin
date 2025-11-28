@@ -291,7 +291,7 @@ pub async fn checkout_pull_request(state: State<'_, AppState>, number: i64) -> R
                 git.checkout_branch(&branch_name)
                     .map_err(|e| e.to_string())?;
             }
-            Ok(())
+            Ok::<_, String>(())
         }
     })
     .await
@@ -304,6 +304,90 @@ pub async fn checkout_pull_request(state: State<'_, AppState>, number: i64) -> R
     }
 
     Ok(())
+}
+
+/// Create a new pull request.
+#[tauri::command]
+pub async fn create_pull_request(
+    state: State<'_, AppState>,
+    title: String,
+    body: Option<String>,
+    head: String,
+    base: String,
+    draft: bool,
+) -> Result<i64, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service
+        .create_pr(title, body, head, base, draft)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Merge a pull request.
+#[tauri::command]
+pub async fn merge_pull_request(
+    state: State<'_, AppState>,
+    pr_id: String,
+    merge_method: String,
+) -> Result<bool, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let method = match merge_method.to_uppercase().as_str() {
+        "MERGE" => crate::domain::pr::MergeMethod::Merge,
+        "SQUASH" => crate::domain::pr::MergeMethod::Squash,
+        "REBASE" => crate::domain::pr::MergeMethod::Rebase,
+        _ => return Err(format!("Invalid merge method: {}", merge_method)),
+    };
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service
+        .merge_pr(pr_id, method)
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Close a pull request without merging.
+#[tauri::command]
+pub async fn close_pull_request(
+    state: State<'_, AppState>,
+    pr_id: String,
+) -> Result<bool, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service.close_pr(pr_id).await.map_err(|e| e.to_string())
 }
 
 /// List all stacks in the current repository.
@@ -394,7 +478,8 @@ pub async fn create_stack_branch(
                 .create_stack_branch(stack_uuid, branch_name, parent_name)
                 .await
         })
-        .map_err(|e| e.to_string())
+        .map_err(|e| e.to_string())?;
+        Ok::<_, String>(())
     })
     .await
     .map_err(|e| format!("Task failed: {:?}", e))?
@@ -430,6 +515,82 @@ pub async fn restack(
     .map_err(|e| format!("Task failed: {:?}", e))?
 }
 
+/// Create a PR for a branch in a stack with the correct base branch.
+#[tauri::command]
+pub async fn create_stack_pr(
+    state: State<'_, AppState>,
+    stack_id: String,
+    branch_name: String,
+    title: String,
+    body: Option<String>,
+    draft: bool,
+) -> Result<i64, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path.clone();
+
+    // First, find the parent branch from the stack metadata
+    let parent_branch = tokio::task::spawn_blocking({
+        let repo_path = repo_path.clone();
+        let stack_id = stack_id.clone();
+        let branch_name = branch_name.clone();
+        move || {
+            let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+            let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
+            let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
+
+            let rt = tokio::runtime::Handle::current();
+            let stack = rt
+                .block_on(async { stack_service.get_stack(stack_uuid).await })
+                .ok_or("Stack not found")?;
+
+            let branch = stack
+                .branches
+                .iter()
+                .find(|b| b.name == branch_name)
+                .ok_or("Branch not found in stack")?;
+
+            Ok::<String, String>(branch.parent.clone())
+        }
+    })
+    .await
+    .map_err(|e| format!("Task failed: {:?}", e))??;
+
+    // Create the PR with the parent branch as base
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    let pr_number = pr_service
+        .create_pr(title, body, branch_name.clone(), parent_branch, draft)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    // Update the stack metadata with the PR number
+    tokio::task::spawn_blocking({
+        let repo_path = repo.path;
+        move || {
+            let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+            let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
+
+            let rt = tokio::runtime::Handle::current();
+            rt.block_on(async { stack_service.set_branch_pr(&branch_name, pr_number).await })
+                .map_err(|e| e.to_string())
+        }
+    })
+    .await
+    .map_err(|e| format!("Task failed: {:?}", e))??;
+
+    Ok(pr_number)
+}
+
 /// Generate all command handlers for registration.
 pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -441,9 +602,13 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         list_pull_requests,
         get_pull_request,
         checkout_pull_request,
+        create_pull_request,
+        merge_pull_request,
+        close_pull_request,
         list_stacks,
         create_stack,
         create_stack_branch,
+        create_stack_pr,
         restack,
     ]
 }

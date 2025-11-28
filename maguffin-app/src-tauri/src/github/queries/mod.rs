@@ -173,6 +173,18 @@ mutation UpdatePullRequestBranch($pullRequestId: ID!, $expectedHeadOid: GitObjec
 }
 "#;
 
+/// Mutation to close a pull request.
+pub const CLOSE_PULL_REQUEST: &str = r#"
+mutation ClosePullRequest($pullRequestId: ID!) {
+  closePullRequest(input: { pullRequestId: $pullRequestId }) {
+    pullRequest {
+      number
+      state
+    }
+  }
+}
+"#;
+
 /// Query to get repository ID.
 pub const GET_REPOSITORY_ID: &str = r#"
 query GetRepositoryId($owner: String!, $repo: String!) {
@@ -227,6 +239,13 @@ pub struct MergePullRequestVariables {
     pub pull_request_id: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub merge_method: Option<String>,
+}
+
+/// Variables for closing a pull request.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ClosePullRequestVariables {
+    pub pull_request_id: String,
 }
 
 /// Variables for getting repository ID.
