@@ -16,6 +16,7 @@ export type Mergeable = "MERGEABLE" | "CONFLICTING" | "UNKNOWN";
 export type MergeMethod = "MERGE" | "SQUASH" | "REBASE";
 
 export interface PullRequest {
+  // GraphQL node ID (required for mutations)
   id: string;
   number: number;
   title: string;
