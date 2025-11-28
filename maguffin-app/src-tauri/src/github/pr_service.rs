@@ -348,7 +348,7 @@ impl PrService {
                     .map(|nodes| {
                         nodes
                             .iter()
-                            .filter_map(|ctx| Self::convert_check_context(ctx))
+                            .filter_map(Self::convert_check_context)
                             .collect()
                     })
                     .unwrap_or_default();
@@ -519,13 +519,15 @@ impl PrService {
             }
             GqlCheckContext::StatusContext(status) => {
                 let typename = status.typename.as_deref();
-                
+
                 // Status contexts have context and state
                 if typename == Some("StatusContext") {
                     let name = status.context.clone()?;
-                    
+
                     let (status_val, conclusion) = match status.state.as_deref() {
-                        Some("SUCCESS") => (CheckRunStatus::Completed, Some(CheckConclusion::Success)),
+                        Some("SUCCESS") => {
+                            (CheckRunStatus::Completed, Some(CheckConclusion::Success))
+                        }
                         Some("FAILURE") | Some("ERROR") => {
                             (CheckRunStatus::Completed, Some(CheckConclusion::Failure))
                         }

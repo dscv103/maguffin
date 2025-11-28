@@ -3,11 +3,11 @@
 //! This module handles local Git repository detection and GitHub remote parsing.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 /// Custom serializer for PathBuf that ensures consistent forward slashes across platforms.
 /// This is important for frontend compatibility as Windows uses backslashes.
-fn serialize_path<S>(path: &PathBuf, serializer: S) -> Result<S::Ok, S::Error>
+fn serialize_path<S>(path: &Path, serializer: S) -> Result<S::Ok, S::Error>
 where
     S: Serializer,
 {

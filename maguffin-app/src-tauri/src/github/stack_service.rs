@@ -12,7 +12,7 @@ use crate::git::{Git2Backend, GitOperations};
 use crate::github::pr_service::PrService;
 use chrono::Utc;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::RwLock;
 
 /// Service for managing stacked branches and PRs.
@@ -20,8 +20,8 @@ pub struct StackService {
     /// Path to the repository
     repo_path: PathBuf,
 
-    /// Git backend for local operations
-    git: Arc<RwLock<Git2Backend>>,
+    /// Git backend for local operations (uses std::sync::Mutex as git2::Repository is not Send)
+    git: Arc<Mutex<Git2Backend>>,
 
     /// PR service for GitHub operations
     pr_service: Option<Arc<PrService>>,
@@ -44,7 +44,7 @@ impl StackService {
 
         Ok(Self {
             repo_path,
-            git: Arc::new(RwLock::new(git)),
+            git: Arc::new(Mutex::new(git)),
             pr_service: None,
             metadata: Arc::new(RwLock::new(metadata)),
         })
@@ -91,13 +91,13 @@ impl StackService {
     ) -> Result<StackBranch> {
         // Create the branch using git
         {
-            let git = self.git.read().await;
+            let git = self.git.lock().unwrap();
             git.create_branch(&branch_name, &parent_name)?;
         }
 
         // Get the head SHA
         let head_sha = {
-            let git = self.git.read().await;
+            let git = self.git.lock().unwrap();
             git.get_head_sha(&branch_name).ok()
         };
 
@@ -156,7 +156,7 @@ impl StackService {
         for branch in branches {
             // Check if branch needs restacking
             let needs_restack = {
-                let git = self.git.read().await;
+                let git = self.git.lock().unwrap();
                 git.needs_rebase(&branch.name, &branch.parent)
                     .unwrap_or(true)
             };
@@ -168,7 +168,7 @@ impl StackService {
 
             // Perform the rebase
             let rebase_result = {
-                let git = self.git.read().await;
+                let git = self.git.lock().unwrap();
                 git.rebase(&branch.name, &branch.parent)
             };
 
@@ -176,7 +176,7 @@ impl StackService {
                 Ok(_) => {
                     // Force push after successful rebase
                     let push_result = {
-                        let git = self.git.read().await;
+                        let git = self.git.lock().unwrap();
                         git.force_push(&branch.name, "origin")
                     };
 
@@ -198,7 +198,7 @@ impl StackService {
                         if let Some(b) = s.find_branch_mut(&branch.name) {
                             b.status = BranchStatus::UpToDate;
                             // Update head SHA
-                            if let Ok(sha) = self.git.read().await.get_head_sha(&branch.name) {
+                            if let Ok(sha) = self.git.lock().unwrap().get_head_sha(&branch.name) {
                                 b.head_sha = Some(sha);
                             }
                         }
@@ -215,7 +215,7 @@ impl StackService {
                         result.status = RestackStatus::Conflicts;
 
                         // Abort the rebase
-                        let _ = self.git.read().await.abort_rebase();
+                        let _ = self.git.lock().unwrap().abort_rebase();
 
                         // Update branch status
                         let mut metadata = self.metadata.write().await;
@@ -257,7 +257,7 @@ impl StackService {
         let mut report = ReconcileReport::new();
 
         let mut metadata = self.metadata.write().await;
-        let git = self.git.read().await;
+        let git = self.git.lock().unwrap();
 
         for stack in &mut metadata.stacks {
             for branch in &mut stack.branches {
@@ -368,11 +368,7 @@ impl StackService {
                         }
                     }
                     Err(e) => {
-                        tracing::error!(
-                            "Failed to get PR details for #{}: {}",
-                            pr_number,
-                            e
-                        );
+                        tracing::error!("Failed to get PR details for #{}: {}", pr_number, e);
                     }
                 }
             }

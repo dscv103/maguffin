@@ -220,11 +220,10 @@ pub async fn open_repository(
 
     // Save to recent repositories
     let path_str = path.to_string_lossy().to_string();
-    let _ = state.cache.save_recent_repository(
-        &path_str,
-        &github_remote.owner,
-        &github_remote.name,
-    );
+    let _ =
+        state
+            .cache
+            .save_recent_repository(&path_str, &github_remote.owner, &github_remote.name);
 
     Ok(Repository {
         path,
@@ -469,10 +468,7 @@ pub async fn merge_pull_request(
 
 /// Close a pull request without merging.
 #[tauri::command]
-pub async fn close_pull_request(
-    state: State<'_, AppState>,
-    pr_id: String,
-) -> Result<bool, String> {
+pub async fn close_pull_request(state: State<'_, AppState>, pr_id: String) -> Result<bool, String> {
     let repo = state
         .current_repo
         .read()
@@ -686,9 +682,12 @@ pub async fn create_stack_pr(
 
             // Build stack context for PR description
             let mut stack_context_parts = Vec::new();
-            stack_context_parts.push(format!("## Stack Context\n"));
-            stack_context_parts.push(format!("This PR is part of a stack rooted at `{}`.\n", stack.root));
-            stack_context_parts.push(format!("\n**Stack branches:**\n"));
+            stack_context_parts.push("## Stack Context\n".to_string());
+            stack_context_parts.push(format!(
+                "This PR is part of a stack rooted at `{}`.\n",
+                stack.root
+            ));
+            stack_context_parts.push("\n**Stack branches:**\n".to_string());
 
             // Get ordered branches
             let ordered_branches = stack.topological_order();
@@ -699,7 +698,10 @@ pub async fn create_stack_pr(
                     "  "
                 };
                 let pr_link = if let Some(pr_num) = stack_branch.pr_number {
-                    format!(" ([#{}](https://github.com/{}/{}/pull/{}))", pr_num, owner, name, pr_num)
+                    format!(
+                        " ([#{}](https://github.com/{}/{}/pull/{}))",
+                        pr_num, owner, name, pr_num
+                    )
                 } else {
                     String::new()
                 };
@@ -774,11 +776,7 @@ pub async fn start_sync(state: State<'_, AppState>) -> Result<(), String> {
 /// Stop background sync.
 #[tauri::command]
 pub async fn stop_sync(state: State<'_, AppState>) -> Result<(), String> {
-    state
-        .sync_service
-        .stop()
-        .await
-        .map_err(|e| e.to_string())
+    state.sync_service.stop().await.map_err(|e| e.to_string())
 }
 
 /// Trigger an immediate sync.

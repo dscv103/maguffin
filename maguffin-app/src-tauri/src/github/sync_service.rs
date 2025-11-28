@@ -9,7 +9,7 @@ use crate::domain::sync::{RateLimitInfo, SyncChange, SyncStats, SyncStatus};
 use crate::domain::PullRequest;
 use crate::error::Result;
 use crate::github::{GitHubClient, PrService};
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
 use tokio::time::{interval, Duration};
@@ -157,7 +157,7 @@ impl SyncService {
     }
 
     /// Start the background sync loop.
-    /// 
+    ///
     /// Note: This method can only be called once successfully. Subsequent calls
     /// will log a warning and return without starting a new sync loop. This is
     /// by design as the sync service is meant to be initialized once during app
@@ -331,9 +331,9 @@ impl SyncService {
                     s.successful_syncs += 1;
                     s.api_requests += 1;
                     let duration = (Utc::now() - started_at).num_milliseconds() as u64;
-                    s.avg_sync_duration_ms =
-                        (s.avg_sync_duration_ms * (s.successful_syncs - 1) + duration)
-                            / s.successful_syncs;
+                    s.avg_sync_duration_ms = (s.avg_sync_duration_ms * (s.successful_syncs - 1)
+                        + duration)
+                        / s.successful_syncs;
                 }
             }
             Err(e) => {
@@ -343,7 +343,7 @@ impl SyncService {
                 // Check if it's a rate limit error by checking common rate limit indicators
                 // GitHub API returns errors containing "rate limit" or HTTP 403/429 status
                 let error_lower = error_msg.to_lowercase();
-                let is_rate_limited = error_lower.contains("rate limit") 
+                let is_rate_limited = error_lower.contains("rate limit")
                     || error_lower.contains("rate_limit")
                     || error_lower.contains("403")
                     || error_lower.contains("429")
@@ -352,7 +352,7 @@ impl SyncService {
                 if is_rate_limited {
                     // Default rate limit reset time (GitHub typically resets hourly)
                     let resets_at = Utc::now() + chrono::Duration::minutes(15);
-                    
+
                     *status.write().await = SyncStatus::RateLimited { resets_at };
                     *rate_limit.write().await = Some(RateLimitInfo {
                         remaining: 0,
@@ -522,7 +522,10 @@ mod tests {
 
         let changes = SyncService::detect_changes(&old_prs, &new_prs);
         assert_eq!(changes.len(), 1);
-        assert!(matches!(changes[0], SyncChange::PrCreated { number: 1, .. }));
+        assert!(matches!(
+            changes[0],
+            SyncChange::PrCreated { number: 1, .. }
+        ));
     }
 
     #[test]
@@ -543,7 +546,10 @@ mod tests {
 
         let changes = SyncService::detect_changes(&old_prs, &new_prs);
         assert_eq!(changes.len(), 1);
-        assert!(matches!(changes[0], SyncChange::PrUpdated { number: 1, .. }));
+        assert!(matches!(
+            changes[0],
+            SyncChange::PrUpdated { number: 1, .. }
+        ));
     }
 
     #[test]
