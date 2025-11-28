@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type { CheckStatus as CheckStatusType, CheckRun, CheckState } from "../types";
 
 interface CheckStatusProps {
@@ -58,6 +59,12 @@ function getStatusLabel(state: CheckState): string {
 }
 
 export function CheckStatusDisplay({ checkStatus }: CheckStatusProps) {
+  // Memoize the passed count calculation
+  const passedCount = useMemo(() => {
+    if (!checkStatus) return 0;
+    return checkStatus.checks.filter((c) => c.conclusion === "SUCCESS").length;
+  }, [checkStatus]);
+
   if (!checkStatus) {
     return (
       <div className="check-status check-status-none">
@@ -69,9 +76,6 @@ export function CheckStatusDisplay({ checkStatus }: CheckStatusProps) {
 
   const { icon, className } = getStateIcon(checkStatus.state);
   const label = getStatusLabel(checkStatus.state);
-  const passedCount = checkStatus.checks.filter(
-    (c) => c.conclusion === "SUCCESS"
-  ).length;
   const totalCount = checkStatus.checks.length;
 
   return (

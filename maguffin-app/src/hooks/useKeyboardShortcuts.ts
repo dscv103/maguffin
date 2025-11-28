@@ -10,6 +10,23 @@ interface KeyboardShortcut {
   description: string;
 }
 
+/**
+ * Check if modifier key matches the shortcut requirement.
+ * If shortcut requires the modifier, check if it's pressed (or meta on Mac for Ctrl).
+ * If shortcut doesn't require the modifier, ensure it's not pressed.
+ */
+function modifierMatches(
+  required: boolean | undefined,
+  pressed: boolean,
+  metaPressed = false
+): boolean {
+  if (required) {
+    // For Ctrl, also accept Cmd (meta) on Mac
+    return pressed || metaPressed;
+  }
+  return !pressed;
+}
+
 export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[], enabled = true) {
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
@@ -30,11 +47,15 @@ export function useKeyboardShortcuts(shortcuts: KeyboardShortcut[], enabled = tr
           event.key.toLowerCase() === shortcut.key.toLowerCase() ||
           event.code.toLowerCase() === shortcut.key.toLowerCase();
 
-        const ctrlMatches = shortcut.ctrl ? event.ctrlKey || event.metaKey : !event.ctrlKey && !event.metaKey;
-        const shiftMatches = shortcut.shift ? event.shiftKey : !event.shiftKey;
-        const altMatches = shortcut.alt ? event.altKey : !event.altKey;
+        // Check modifiers - for Ctrl, also accept Cmd on Mac
+        const ctrlMatches = modifierMatches(shortcut.ctrl, event.ctrlKey, event.metaKey);
+        const shiftMatches = modifierMatches(shortcut.shift, event.shiftKey);
+        const altMatches = modifierMatches(shortcut.alt, event.altKey);
+        
+        // If no ctrl shortcut required, ensure neither ctrl nor meta is pressed
+        const noUnwantedModifiers = shortcut.ctrl || (!event.ctrlKey && !event.metaKey);
 
-        if (keyMatches && ctrlMatches && shiftMatches && altMatches) {
+        if (keyMatches && ctrlMatches && shiftMatches && altMatches && noUnwantedModifiers) {
           event.preventDefault();
           shortcut.action();
           return;
