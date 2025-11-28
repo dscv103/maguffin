@@ -4,13 +4,12 @@ import { usePullRequestActions } from "../hooks";
 
 interface PRDetailPanelProps {
   pr: PullRequest;
-  prId: string; // The GraphQL node ID for the PR
   repository: Repository;
   onClose: () => void;
   onActionComplete?: () => void;
 }
 
-export function PRDetailPanel({ pr, prId, repository, onClose, onActionComplete }: PRDetailPanelProps) {
+export function PRDetailPanel({ pr, repository, onClose, onActionComplete }: PRDetailPanelProps) {
   const { loading, error, mergePR, closePR, checkoutPR, clearError } = usePullRequestActions();
   const [showMergeOptions, setShowMergeOptions] = useState(false);
 
@@ -22,7 +21,7 @@ export function PRDetailPanel({ pr, prId, repository, onClose, onActionComplete 
   };
 
   const handleMerge = async (method: MergeMethod) => {
-    const success = await mergePR(prId, method);
+    const success = await mergePR(pr.id, method);
     if (success) {
       setShowMergeOptions(false);
       onActionComplete?.();
@@ -31,7 +30,7 @@ export function PRDetailPanel({ pr, prId, repository, onClose, onActionComplete 
   };
 
   const handleClose = async () => {
-    const success = await closePR(prId);
+    const success = await closePR(pr.id);
     if (success) {
       onActionComplete?.();
       onClose();
