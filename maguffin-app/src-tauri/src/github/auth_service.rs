@@ -233,7 +233,13 @@ impl AuthService {
 
 impl Default for AuthService {
     fn default() -> Self {
-        Self::new().expect("Failed to create AuthService")
+        AuthService {
+            http: reqwest::Client::new(),
+            state: Arc::new(RwLock::new(AuthState::Unauthenticated)),
+            keyring: KeyringStore::default(),
+            device_code: Arc::new(RwLock::new(None)),
+            client_id: String::new(),
+        }
     }
 }
 
