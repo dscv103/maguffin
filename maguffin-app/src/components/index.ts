@@ -5,3 +5,6 @@ export { PRDetailPanel } from "./PRDetailPanel";
 export { StackView, StackList } from "./StackView";
 export { RepoSelector } from "./RepoSelector";
 export { Markdown } from "./Markdown";
+export { CheckStatusDisplay } from "./CheckStatus";
+export { ThemeToggle } from "./ThemeToggle";
+export { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";

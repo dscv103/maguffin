@@ -129,6 +129,71 @@ pub struct PullRequestDetails {
 
     /// Review requests (pending reviewers)
     pub review_requests: Vec<String>,
+
+    /// CI/check status for the head commit
+    pub check_status: Option<CheckStatus>,
+}
+
+/// CI/check status summary.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CheckStatus {
+    /// Overall status state
+    pub state: CheckState,
+
+    /// Individual check runs
+    pub checks: Vec<CheckRun>,
+}
+
+/// Overall check state.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CheckState {
+    /// All checks have passed
+    Success,
+    /// Some checks are still running
+    Pending,
+    /// At least one check has failed
+    Failure,
+    /// State is unknown
+    Unknown,
+}
+
+/// An individual check run or status context.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CheckRun {
+    /// Name of the check
+    pub name: String,
+
+    /// Check status (queued, in_progress, completed)
+    pub status: CheckRunStatus,
+
+    /// Check conclusion (only valid when completed)
+    pub conclusion: Option<CheckConclusion>,
+
+    /// URL for more details
+    pub details_url: Option<String>,
+}
+
+/// Check run status.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CheckRunStatus {
+    Queued,
+    InProgress,
+    Completed,
+}
+
+/// Check run conclusion.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum CheckConclusion {
+    Success,
+    Failure,
+    Neutral,
+    Cancelled,
+    Skipped,
+    TimedOut,
+    ActionRequired,
 }
 
 /// A commit in a PR.

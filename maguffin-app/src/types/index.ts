@@ -67,6 +67,24 @@ export interface PullRequestDetails {
   files: ChangedFile[];
   reviews: Review[];
   review_requests: string[];
+  check_status: CheckStatus | null;
+}
+
+// CI/Check status types
+export type CheckState = "SUCCESS" | "PENDING" | "FAILURE" | "UNKNOWN";
+export type CheckRunStatus = "QUEUED" | "IN_PROGRESS" | "COMPLETED";
+export type CheckConclusion = "SUCCESS" | "FAILURE" | "NEUTRAL" | "CANCELLED" | "SKIPPED" | "TIMED_OUT" | "ACTION_REQUIRED";
+
+export interface CheckRun {
+  name: string;
+  status: CheckRunStatus;
+  conclusion: CheckConclusion | null;
+  details_url: string | null;
+}
+
+export interface CheckStatus {
+  state: CheckState;
+  checks: CheckRun[];
 }
 
 // Stack types

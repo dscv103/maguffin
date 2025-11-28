@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector } from "./components";
-import { useAuth, useStacks, useRepository, usePullRequests } from "./hooks";
+import { useState, useCallback, useEffect } from "react";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp } from "./components";
+import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS } from "./hooks";
 import type { PullRequest, Stack } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
@@ -10,10 +10,56 @@ function App() {
   const { repository, recentRepositories, loading: repoLoading, error: repoError, openRepository, removeRecentRepository, clearRepository, clearError: clearRepoError } = useRepository();
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
+  const { theme, setTheme, toggleTheme } = useTheme();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const isAuthenticated = authState.type === "authenticated";
+
+  // Define keyboard shortcut callbacks
+  const onNavigateDashboard = useCallback(() => setCurrentView("dashboard"), []);
+  const onNavigateStacks = useCallback(() => setCurrentView("stacks"), []);
+  const onNavigateSettings = useCallback(() => setCurrentView("settings"), []);
+  const onRefresh = useCallback(() => refreshPRs(), [refreshPRs]);
+  const onToggleTheme = useCallback(() => toggleTheme(), [toggleTheme]);
+  const onEscape = useCallback(() => {
+    if (showShortcuts) {
+      setShowShortcuts(false);
+    } else if (selectedPR) {
+      setSelectedPR(null);
+    }
+  }, [showShortcuts, selectedPR]);
+
+  // Keyboard shortcuts
+  useAppKeyboardShortcuts(
+    {
+      onNavigateDashboard,
+      onNavigateStacks,
+      onNavigateSettings,
+      onRefresh,
+      onToggleTheme,
+      onEscape,
+    },
+    isAuthenticated
+  );
+
+  // Add ? shortcut for showing keyboard shortcuts help
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "?" && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      const target = e.target as HTMLElement;
+      if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA" && !target.isContentEditable) {
+        e.preventDefault();
+        setShowShortcuts(true);
+      }
+    }
+  }, []);
+
+  // Register ? key handler
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   if (!isAuthenticated) {
     return (
@@ -80,6 +126,7 @@ function App() {
         </ul>
 
         <div className="sidebar-footer">
+          <ThemeToggle />
           <AuthView />
         </div>
       </nav>
@@ -123,7 +170,44 @@ function App() {
             {currentView === "settings" && (
               <div className="settings-view">
                 <h1>Settings</h1>
-                <p className="coming-soon">Settings coming soon...</p>
+                
+                <section className="settings-section">
+                  <h2>Appearance</h2>
+                  <div className="setting-item">
+                    <label className="setting-label">Theme</label>
+                    <div className="theme-options">
+                      <button 
+                        className={`theme-option ${theme === "dark" ? "active" : ""}`}
+                        onClick={() => setTheme("dark")}
+                      >
+                        🌙 Dark
+                      </button>
+                      <button 
+                        className={`theme-option ${theme === "light" ? "active" : ""}`}
+                        onClick={() => setTheme("light")}
+                      >
+                        ☀️ Light
+                      </button>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="settings-section">
+                  <h2>Keyboard Shortcuts</h2>
+                  <div className="shortcuts-preview">
+                    {AVAILABLE_SHORTCUTS.map((shortcut) => (
+                      <div key={shortcut.key} className="shortcut-item">
+                        <kbd className="shortcut-key">{shortcut.key}</kbd>
+                        <span className="shortcut-description">{shortcut.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="settings-section">
+                  <h2>About</h2>
+                  <p className="about-text">Maguffin is a cross-platform Git client with a Tower-style PR dashboard and Graphite-style stacked PR workflow.</p>
+                </section>
               </div>
             )}
           </>
@@ -137,6 +221,10 @@ function App() {
           onClose={() => setSelectedPR(null)}
           onActionComplete={handlePRActionComplete}
         />
+      )}
+
+      {showShortcuts && (
+        <KeyboardShortcutsHelp onClose={() => setShowShortcuts(false)} />
       )}
     </div>
   );
