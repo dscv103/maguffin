@@ -58,24 +58,14 @@ function parseMarkdown(text: string): string {
   // Horizontal rules (--- or ***)
   html = html.replace(/^(---|\*\*\*)$/gm, "<hr />");
 
-  // Unordered lists (- item or * item)
-  html = html.replace(/^[\-\*] (.+)$/gm, "<li>$1</li>");
-
-  // Ordered lists (1. item)
-  html = html.replace(/^\d+\. (.+)$/gm, "<li>$1</li>");
-
-  // Wrap consecutive <li> elements in <ul>
-  html = html.replace(/(<li>.*<\/li>\n?)+/g, (match) => `<ul>${match}</ul>`);
-
   // Links [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
 
   // Images ![alt](url)
   html = html.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" />');
 
-  // Task lists (- [ ] or - [x])
-  html = html.replace(/<li>\[ \] (.+)<\/li>/g, '<li class="task-item"><input type="checkbox" disabled /> $1</li>');
-  html = html.replace(/<li>\[x\] (.+)<\/li>/gi, '<li class="task-item"><input type="checkbox" disabled checked /> $1</li>');
+  // Process lists with proper handling for ordered vs unordered
+  html = processLists(html);
 
   // Paragraphs - wrap lines that don't start with HTML tags
   const lines = html.split("\n");
@@ -85,6 +75,7 @@ function parseMarkdown(text: string): string {
     if (
       trimmed.startsWith("<h") ||
       trimmed.startsWith("<ul") ||
+      trimmed.startsWith("<ol") ||
       trimmed.startsWith("<li") ||
       trimmed.startsWith("<pre") ||
       trimmed.startsWith("<blockquote") ||
@@ -103,6 +94,80 @@ function parseMarkdown(text: string): string {
   html = html.replace(/<p>\s*<\/p>/g, "");
 
   return html;
+}
+
+/**
+ * Process list items with proper handling for:
+ * - Task lists (- [ ] or - [x])
+ * - Unordered lists (- or *)
+ * - Ordered lists (1. 2. etc.)
+ */
+function processLists(html: string): string {
+  const lines = html.split("\n");
+  const result: string[] = [];
+  let inList = false;
+  let listType: "ul" | "ol" | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    
+    // Task list (- [ ] or - [x])
+    const taskUnchecked = line.match(/^[\-\*] \[ \] (.+)$/);
+    const taskChecked = line.match(/^[\-\*] \[x\] (.+)$/i);
+    // Unordered list (- or *)
+    const unordered = line.match(/^[\-\*] (.+)$/);
+    // Ordered list (1. 2. etc.)
+    const ordered = line.match(/^(\d+)\. (.+)$/);
+
+    if (taskUnchecked) {
+      if (!inList || listType !== "ul") {
+        if (inList) result.push(listType === "ol" ? "</ol>" : "</ul>");
+        result.push("<ul>");
+        inList = true;
+        listType = "ul";
+      }
+      result.push(`<li class="task-item"><input type="checkbox" disabled /> ${taskUnchecked[1]}</li>`);
+    } else if (taskChecked) {
+      if (!inList || listType !== "ul") {
+        if (inList) result.push(listType === "ol" ? "</ol>" : "</ul>");
+        result.push("<ul>");
+        inList = true;
+        listType = "ul";
+      }
+      result.push(`<li class="task-item"><input type="checkbox" disabled checked /> ${taskChecked[1]}</li>`);
+    } else if (ordered) {
+      if (!inList || listType !== "ol") {
+        if (inList) result.push(listType === "ol" ? "</ol>" : "</ul>");
+        result.push("<ol>");
+        inList = true;
+        listType = "ol";
+      }
+      result.push(`<li>${ordered[2]}</li>`);
+    } else if (unordered) {
+      if (!inList || listType !== "ul") {
+        if (inList) result.push(listType === "ol" ? "</ol>" : "</ul>");
+        result.push("<ul>");
+        inList = true;
+        listType = "ul";
+      }
+      result.push(`<li>${unordered[1]}</li>`);
+    } else {
+      // Close any open list
+      if (inList) {
+        result.push(listType === "ol" ? "</ol>" : "</ul>");
+        inList = false;
+        listType = null;
+      }
+      result.push(line);
+    }
+  }
+
+  // Close any remaining open list
+  if (inList) {
+    result.push(listType === "ol" ? "</ol>" : "</ul>");
+  }
+
+  return result.join("\n");
 }
 
 function escapeHtml(text: string): string {

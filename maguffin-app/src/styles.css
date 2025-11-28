@@ -749,7 +749,8 @@ body {
   color: var(--text-secondary);
 }
 
-.markdown-content ul {
+.markdown-content ul,
+.markdown-content ol {
   margin: 0.5em 0;
   padding-left: 2em;
 }
