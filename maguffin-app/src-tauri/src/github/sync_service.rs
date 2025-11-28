@@ -180,16 +180,21 @@ impl SyncService {
         let running = self.running.clone();
 
         tokio::spawn(async move {
-            let mut sync_interval = interval(Duration::from_secs(60));
+            let initial_interval_secs = config.read().await.interval_secs;
+            let mut sync_interval = interval(Duration::from_secs(initial_interval_secs));
+            let mut current_interval_secs = initial_interval_secs;
 
             loop {
-                // Update interval from config
-                let interval_secs = config.read().await.interval_secs;
-                sync_interval = interval(Duration::from_secs(interval_secs));
-
                 tokio::select! {
                     // Timer tick
                     _ = sync_interval.tick() => {
+                        // Check if interval config changed
+                        let new_interval_secs = config.read().await.interval_secs;
+                        if new_interval_secs != current_interval_secs {
+                            sync_interval = interval(Duration::from_secs(new_interval_secs));
+                            current_interval_secs = new_interval_secs;
+                        }
+
                         if *running.read().await {
                             let should_sync = {
                                 let cfg = config.read().await;

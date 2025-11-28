@@ -43,12 +43,14 @@ export function SyncStatusIndicator({
           label: `Rate limited until ${formatTime(status.resets_at)}`,
           className: "sync-rate-limited",
         };
-      default:
+      default: {
+        // This case should never be reached - all status values are handled above
         return {
           icon: "?",
           label: "Unknown status",
           className: "sync-unknown",
         };
+      }
     }
   }, [status]);
 

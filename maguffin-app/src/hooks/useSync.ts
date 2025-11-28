@@ -54,8 +54,8 @@ export function useSync() {
     setLoading(true);
     try {
       await invoke("sync_now");
-      // Wait a bit for sync to start
-      setTimeout(fetchStatus, 500);
+      // Fetch status after triggering sync
+      await fetchStatus();
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
