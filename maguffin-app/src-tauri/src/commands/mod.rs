@@ -252,33 +252,42 @@ pub async fn checkout_pull_request(
 
     let branch_name = details.pr.head_ref;
 
-    // Checkout the branch
-    let git = Git2Backend::open(&repo.path).map_err(|e| e.to_string())?;
+    // Checkout the branch (wrap in spawn_blocking to avoid blocking async runtime)
+    tokio::task::spawn_blocking({
+        let repo_path = repo.path.clone();
+        let branch_name = branch_name.clone();
+        move || {
+            let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
 
-    // First try to checkout existing branch
-    if git.branch_exists(&branch_name).map_err(|e| e.to_string())? {
-        git.checkout_branch(&branch_name)
-            .map_err(|e| e.to_string())?;
-    } else {
-        // Need to fetch the branch first
-        git.fetch("origin").map_err(|e| e.to_string())?;
+            // First try to checkout existing branch
+            if git.branch_exists(&branch_name).map_err(|e| e.to_string())? {
+                git.checkout_branch(&branch_name)
+                    .map_err(|e| e.to_string())?;
+            } else {
+                // Need to fetch the branch first
+                git.fetch("origin").map_err(|e| e.to_string())?;
 
-        // Create local tracking branch
-        let git_repo = git2::Repository::open(&repo.path).map_err(|e| e.to_string())?;
-        let remote_branch = format!("origin/{}", branch_name);
-        let remote_ref = git_repo
-            .find_reference(&format!("refs/remotes/{}", remote_branch))
-            .map_err(|e| format!("Remote branch not found: {}", e))?;
-        let commit = remote_ref
-            .peel_to_commit()
-            .map_err(|e| e.to_string())?;
-        git_repo
-            .branch(&branch_name, &commit, false)
-            .map_err(|e| e.to_string())?;
+                // Create local tracking branch
+                let git_repo = git2::Repository::open(&repo_path).map_err(|e| e.to_string())?;
+                let remote_branch = format!("origin/{}", branch_name);
+                let remote_ref = git_repo
+                    .find_reference(&format!("refs/remotes/{}", remote_branch))
+                    .map_err(|e| format!("Remote branch not found: {}", e))?;
+                let commit = remote_ref
+                    .peel_to_commit()
+                    .map_err(|e| e.to_string())?;
+                git_repo
+                    .branch(&branch_name, &commit, false)
+                    .map_err(|e| e.to_string())?;
 
-        git.checkout_branch(&branch_name)
-            .map_err(|e| e.to_string())?;
-    }
+                git.checkout_branch(&branch_name)
+                    .map_err(|e| e.to_string())?;
+            }
+            Ok(())
+        }
+    })
+    .await
+    .map_err(|e| format!("Git operation panicked: {}", e))??;
 
     // Update current branch in context
     let mut context = state.current_repo.write().await;
