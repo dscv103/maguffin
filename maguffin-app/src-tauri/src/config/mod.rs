@@ -107,8 +107,13 @@ impl Default for GitHubConfig {
         Self {
             api_endpoint: "https://api.github.com/graphql".to_string(),
             max_concurrent_requests: 5,
-            // Default OAuth client ID for Maguffin app
-            // Can be overridden via environment variable MAGUFFIN_GITHUB_CLIENT_ID
+            // Default OAuth client ID for Maguffin app.
+            // This client ID is for a public OAuth app and is NOT a secret.
+            // It is safe to use in development and testing, but for production deployments,
+            // you should override it via the MAGUFFIN_GITHUB_CLIENT_ID environment variable
+            // if you need to use your own registered OAuth app.
+            // See GitHub OAuth documentation for details:
+            // https://docs.github.com/en/apps/oauth-apps
             oauth_client_id: std::env::var("MAGUFFIN_GITHUB_CLIENT_ID")
                 .unwrap_or_else(|_| "Ov23liYwNsRRRrKOQCvj".to_string()),
         }
