@@ -4,10 +4,11 @@
 //! frontend UI to the Rust backend.
 
 use crate::domain::repo::GitHubRemote;
+use crate::domain::stack::{RestackResult, Stack};
 use crate::domain::{AuthState, PullRequest, Repository, SyncState};
 use crate::error::AppError;
 use crate::git::{Git2Backend, GitOperations};
-use crate::github::{AuthService, GitHubClient, PrService};
+use crate::github::{AuthService, GitHubClient, PrService, StackService};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::State;
@@ -288,6 +289,131 @@ pub async fn checkout_pull_request(
     Ok(())
 }
 
+/// List all stacks in the current repository.
+#[tauri::command]
+pub async fn list_stacks(state: State<'_, AppState>) -> Result<Vec<Stack>, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path;
+    
+    // Read stack metadata directly from file (no git operations needed)
+    tokio::task::spawn_blocking(move || {
+        let metadata_path = repo_path.join(".git").join("stack-metadata.json");
+        if metadata_path.exists() {
+            let content = std::fs::read_to_string(&metadata_path)
+                .map_err(|e| format!("Failed to read stack metadata: {}", e))?;
+            let metadata: crate::domain::stack::StackMetadata = serde_json::from_str(&content)
+                .map_err(|e| format!("Failed to parse stack metadata: {}", e))?;
+            Ok(metadata.stacks)
+        } else {
+            Ok(Vec::new())
+        }
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Create a new stack rooted at the given branch.
+#[tauri::command]
+pub async fn create_stack(
+    state: State<'_, AppState>,
+    root_branch: String,
+) -> Result<Stack, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path;
+    
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let runtime = tokio::runtime::Handle::current();
+        let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
+        
+        runtime.block_on(async {
+            stack_service
+                .create_stack(root_branch)
+                .await
+                .map_err(|e| e.to_string())
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Create a new branch on an existing stack.
+#[tauri::command]
+pub async fn create_stack_branch(
+    state: State<'_, AppState>,
+    stack_id: String,
+    branch_name: String,
+    parent_name: String,
+) -> Result<(), String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path;
+    
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
+        let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
+        
+        let runtime = tokio::runtime::Handle::current();
+        runtime.block_on(async {
+            stack_service
+                .create_stack_branch(stack_uuid, branch_name, parent_name)
+                .await
+                .map_err(|e| e.to_string())
+        })?;
+        
+        Ok(())
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
+/// Restack all branches in a stack.
+#[tauri::command]
+pub async fn restack(state: State<'_, AppState>, stack_id: String) -> Result<RestackResult, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path;
+    
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
+        let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
+        
+        let runtime = tokio::runtime::Handle::current();
+        runtime.block_on(async {
+            stack_service
+                .restack(stack_uuid)
+                .await
+                .map_err(|e| e.to_string())
+        })
+    })
+    .await
+    .map_err(|e| e.to_string())?
+}
+
 /// Generate all command handlers for registration.
 pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -299,6 +425,10 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         list_pull_requests,
         get_pull_request,
         checkout_pull_request,
+        list_stacks,
+        create_stack,
+        create_stack_branch,
+        restack,
     ]
 }
 

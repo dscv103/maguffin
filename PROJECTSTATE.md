@@ -102,6 +102,20 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Wired Tauri commands to actual backend services. Implemented AuthService for GitHub OAuth device flow. Connected PRService to list_pull_requests command. Updated frontend types to match Rust serialization format.",
     "timestamp": "2025-11-28T04:50:00Z",
     "validation": "All 50 unit tests pass (49 + 1 ignored). Frontend builds successfully. AuthService implements GitHub device flow with keyring storage. Commands properly wired to services for auth, repo opening, PR listing, and PR checkout."
+  },
+  {
+    "from_agent": "feature-developer",
+    "to_agent": "feature-developer",
+    "phase": "implementation-milestone-4",
+    "artefacts": [
+      "maguffin-app/src-tauri/src/commands/mod.rs",
+      "maguffin-app/src/hooks/useStacks.ts",
+      "maguffin-app/src/hooks/index.ts",
+      "maguffin-app/src/App.tsx"
+    ],
+    "trigger": "Added stack management commands (list_stacks, create_stack, create_stack_branch, restack). Implemented useStacks hook and connected StackList component to real data.",
+    "timestamp": "2025-11-28T05:10:00Z",
+    "validation": "All 50 unit tests pass. Frontend builds successfully. Stack operations properly use spawn_blocking to handle non-Send git2 types across async boundaries."
   }
 ]
 ```

@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { AuthView, PRDashboard } from "./components";
-import { useAuth } from "./hooks";
-import type { PullRequest } from "./types";
+import { AuthView, PRDashboard, StackList } from "./components";
+import { useAuth, useStacks } from "./hooks";
+import type { PullRequest, Stack } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
 
 function App() {
   const { authState } = useAuth();
+  const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
 
@@ -19,6 +20,10 @@ function App() {
       </div>
     );
   }
+
+  const handleRestack = async (stack: Stack) => {
+    await restackStack(stack.id);
+  };
 
   return (
     <div className="app">
@@ -70,7 +75,23 @@ function App() {
         {currentView === "stacks" && (
           <div className="stacks-view">
             <h1>Stacks</h1>
-            <p className="coming-soon">Stack management coming soon...</p>
+            {stacksLoading ? (
+              <div className="loading">
+                <div className="spinner" />
+                <p>Loading stacks...</p>
+              </div>
+            ) : stacksError ? (
+              <div className="error">
+                <p className="error-message">{stacksError}</p>
+              </div>
+            ) : stacks.length === 0 ? (
+              <div className="empty-state">
+                <p>No stacks found</p>
+                <p className="hint">Create a stack to organize your branches</p>
+              </div>
+            ) : (
+              <StackList stacks={stacks} onRestack={handleRestack} />
+            )}
           </div>
         )}
 
