@@ -128,10 +128,11 @@ function App() {
         )}
       </main>
 
-      {selectedPR && (
+      {selectedPR && repository && (
         <PRDetailPanel
           pr={selectedPR}
           prId={selectedPR.id}
+          repository={repository}
           onClose={() => setSelectedPR(null)}
           onActionComplete={handlePRActionComplete}
         />

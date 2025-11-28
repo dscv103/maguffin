@@ -53,6 +53,33 @@ export function useStacks(repository: Repository | null) {
     [fetchStacks]
   );
 
+  const createStackPR = useCallback(
+    async (
+      stackId: string,
+      branchName: string,
+      title: string,
+      body?: string,
+      draft: boolean = false
+    ): Promise<number | null> => {
+      try {
+        setError(null);
+        const prNumber = await invoke<number>("create_stack_pr", {
+          stack_id: stackId,
+          branch_name: branchName,
+          title,
+          body: body ?? null,
+          draft,
+        });
+        await fetchStacks(); // Refresh to get updated stack with PR number
+        return prNumber;
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+        return null;
+      }
+    },
+    [fetchStacks]
+  );
+
   const restackStack = useCallback(async (stackId: string) => {
     try {
       setError(null);
@@ -83,6 +110,7 @@ export function useStacks(repository: Repository | null) {
     refresh: fetchStacks,
     createStack,
     createStackBranch,
+    createStackPR,
     restackStack,
   };
 }

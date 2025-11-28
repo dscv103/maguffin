@@ -1,15 +1,16 @@
 import { useState } from "react";
-import type { PullRequest, MergeMethod } from "../types";
+import type { PullRequest, MergeMethod, Repository } from "../types";
 import { usePullRequestActions } from "../hooks";
 
 interface PRDetailPanelProps {
   pr: PullRequest;
   prId: string; // The GraphQL node ID for the PR
+  repository: Repository;
   onClose: () => void;
   onActionComplete?: () => void;
 }
 
-export function PRDetailPanel({ pr, prId, onClose, onActionComplete }: PRDetailPanelProps) {
+export function PRDetailPanel({ pr, prId, repository, onClose, onActionComplete }: PRDetailPanelProps) {
   const { loading, error, mergePR, closePR, checkoutPR, clearError } = usePullRequestActions();
   const [showMergeOptions, setShowMergeOptions] = useState(false);
 
@@ -38,8 +39,8 @@ export function PRDetailPanel({ pr, prId, onClose, onActionComplete }: PRDetailP
   };
 
   const openInBrowser = () => {
-    // Open the PR in the browser
-    const url = `https://github.com/${encodeURIComponent(pr.base_ref)}/../pull/${pr.number}`;
+    // Open the PR in the browser using the repository owner and name
+    const url = `https://github.com/${encodeURIComponent(repository.owner)}/${encodeURIComponent(repository.name)}/pull/${pr.number}`;
     window.open(url, "_blank");
   };
 
