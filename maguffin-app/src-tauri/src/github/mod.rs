@@ -21,17 +21,21 @@ pub struct GitHubClient {
 
 impl GitHubClient {
     /// Create a new GitHub client.
-    pub fn new(endpoint: String) -> Self {
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the HTTP client cannot be created.
+    pub fn new(endpoint: String) -> Result<Self> {
         let http = reqwest::Client::builder()
             .user_agent("maguffin-app/0.1.0")
             .build()
-            .expect("Failed to create HTTP client");
+            .map_err(|e| GitHubError::Http(format!("Failed to create HTTP client: {}", e)))?;
 
-        Self {
+        Ok(Self {
             http,
             token: Arc::new(RwLock::new(None)),
             endpoint,
-        }
+        })
     }
 
     /// Set the access token.
@@ -114,20 +118,20 @@ mod tests {
 
     #[tokio::test]
     async fn test_client_creation() {
-        let client = GitHubClient::new("https://api.github.com/graphql".to_string());
+        let client = GitHubClient::new("https://api.github.com/graphql".to_string()).unwrap();
         assert!(!client.has_token().await);
     }
 
     #[tokio::test]
     async fn test_set_token() {
-        let client = GitHubClient::new("https://api.github.com/graphql".to_string());
+        let client = GitHubClient::new("https://api.github.com/graphql".to_string()).unwrap();
         client.set_token("test_token".to_string()).await;
         assert!(client.has_token().await);
     }
 
     #[tokio::test]
     async fn test_clear_token() {
-        let client = GitHubClient::new("https://api.github.com/graphql".to_string());
+        let client = GitHubClient::new("https://api.github.com/graphql".to_string()).unwrap();
         client.set_token("test_token".to_string()).await;
         client.clear_token().await;
         assert!(!client.has_token().await);
