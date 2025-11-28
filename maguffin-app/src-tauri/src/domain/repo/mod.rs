@@ -2,13 +2,34 @@
 //!
 //! This module handles local Git repository detection and GitHub remote parsing.
 
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::path::PathBuf;
+
+/// Custom serializer for PathBuf that ensures consistent forward slashes across platforms.
+/// This is important for frontend compatibility as Windows uses backslashes.
+fn serialize_path<S>(path: &PathBuf, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: Serializer,
+{
+    // Convert path to string with forward slashes for cross-platform consistency
+    let path_str = path.to_string_lossy().replace('\\', "/");
+    serializer.serialize_str(&path_str)
+}
+
+/// Custom deserializer for PathBuf that handles both forward and back slashes.
+fn deserialize_path<'de, D>(deserializer: D) -> Result<PathBuf, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Ok(PathBuf::from(s))
+}
 
 /// Represents a local Git repository with GitHub remote.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repository {
-    /// Local path to the repository
+    /// Local path to the repository (serialized with forward slashes for cross-platform consistency)
+    #[serde(serialize_with = "serialize_path", deserialize_with = "deserialize_path")]
     pub path: PathBuf,
 
     /// GitHub owner (user or organization)
@@ -159,7 +180,8 @@ impl GitHubRemote {
 /// Recent repository entry for quick access.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecentRepository {
-    /// Local path
+    /// Local path (serialized with forward slashes for cross-platform consistency)
+    #[serde(serialize_with = "serialize_path", deserialize_with = "deserialize_path")]
     pub path: PathBuf,
 
     /// Repository full name
@@ -229,5 +251,22 @@ mod tests {
         let state = SyncState::Ahead { commits: 5 };
         let json = serde_json::to_string(&state).unwrap();
         assert!(json.contains("ahead"));
+    }
+
+    #[test]
+    fn test_path_serialization_uses_forward_slashes() {
+        let repo = Repository {
+            path: PathBuf::from("/home/user/project"),
+            owner: "owner".to_string(),
+            name: "repo".to_string(),
+            current_branch: "main".to_string(),
+            default_branch: "main".to_string(),
+            remote_url: "https://github.com/owner/repo.git".to_string(),
+            sync_state: SyncState::Unknown,
+        };
+        let json = serde_json::to_string(&repo).unwrap();
+        // Verify path is serialized with forward slashes (no backslashes)
+        assert!(!json.contains("\\\\"));
+        assert!(json.contains("/home/user/project"));
     }
 }
