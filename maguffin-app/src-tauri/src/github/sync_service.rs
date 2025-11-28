@@ -14,6 +14,9 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, RwLock};
 use tokio::time::{interval, Duration};
 
+/// GitHub's default authenticated API rate limit (requests per hour)
+const GITHUB_RATE_LIMIT_DEFAULT: u32 = 5000;
+
 /// Message types for controlling the sync service.
 #[derive(Debug, Clone)]
 pub enum SyncCommand {
@@ -349,18 +352,16 @@ impl SyncService {
                 if is_rate_limited {
                     // Default rate limit reset time (GitHub typically resets hourly)
                     let resets_at = Utc::now() + chrono::Duration::minutes(15);
-                    // Use GitHub's default authenticated rate limit
-                    let limit = 5000u32;
                     
                     *status.write().await = SyncStatus::RateLimited { resets_at };
                     *rate_limit.write().await = Some(RateLimitInfo {
                         remaining: 0,
-                        limit,
+                        limit: GITHUB_RATE_LIMIT_DEFAULT,
                         resets_at,
                     });
                     let _ = event_tx.send(SyncEvent::RateLimitUpdated(RateLimitInfo {
                         remaining: 0,
-                        limit,
+                        limit: GITHUB_RATE_LIMIT_DEFAULT,
                         resets_at,
                     }));
                 } else {
