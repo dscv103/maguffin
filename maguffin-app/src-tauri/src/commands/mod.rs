@@ -489,6 +489,32 @@ pub async fn close_pull_request(
     pr_service.close_pr(pr_id).await.map_err(|e| e.to_string())
 }
 
+/// Update a pull request's base branch.
+#[tauri::command]
+pub async fn update_pull_request_base(
+    state: State<'_, AppState>,
+    pr_id: String,
+    new_base: String,
+) -> Result<bool, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service
+        .update_pr_base(pr_id, new_base)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// List all stacks in the current repository.
 #[tauri::command]
 pub async fn list_stacks(state: State<'_, AppState>) -> Result<Vec<Stack>, String> {
@@ -632,12 +658,16 @@ pub async fn create_stack_pr(
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path.clone();
+    let owner = repo.owner.clone();
+    let name = repo.name.clone();
 
-    // First, find the parent branch from the stack metadata
-    let parent_branch = tokio::task::spawn_blocking({
+    // First, get stack info and parent branch from the stack metadata
+    let (parent_branch, stack_context) = tokio::task::spawn_blocking({
         let repo_path = repo_path.clone();
         let stack_id = stack_id.clone();
         let branch_name = branch_name.clone();
+        let owner = owner.clone();
+        let name = name.clone();
         move || {
             let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
             let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
@@ -654,11 +684,45 @@ pub async fn create_stack_pr(
                 .find(|b| b.name == branch_name)
                 .ok_or("Branch not found in stack")?;
 
-            Ok::<String, String>(branch.parent.clone())
+            // Build stack context for PR description
+            let mut stack_context_parts = Vec::new();
+            stack_context_parts.push(format!("## Stack Context\n"));
+            stack_context_parts.push(format!("This PR is part of a stack rooted at `{}`.\n", stack.root));
+            stack_context_parts.push(format!("\n**Stack branches:**\n"));
+
+            // Get ordered branches
+            let ordered_branches = stack.topological_order();
+            for stack_branch in &ordered_branches {
+                let prefix = if stack_branch.name == branch_name {
+                    "👉"
+                } else {
+                    "  "
+                };
+                let pr_link = if let Some(pr_num) = stack_branch.pr_number {
+                    format!(" ([#{}](https://github.com/{}/{}/pull/{}))", pr_num, owner, name, pr_num)
+                } else {
+                    String::new()
+                };
+                stack_context_parts.push(format!(
+                    "{} `{}` → `{}`{}\n",
+                    prefix, stack_branch.name, stack_branch.parent, pr_link
+                ));
+            }
+
+            let stack_context = stack_context_parts.join("");
+            Ok::<(String, String), String>((branch.parent.clone(), stack_context))
         }
     })
     .await
     .map_err(|e| format!("Task failed: {:?}", e))??;
+
+    // Append stack context to body
+    let full_body = match body {
+        Some(user_body) if !user_body.is_empty() => {
+            Some(format!("{}\n\n---\n\n{}", user_body, stack_context))
+        }
+        _ => Some(stack_context),
+    };
 
     // Create the PR with the parent branch as base
     let pr_service = PrService::new(
@@ -668,7 +732,7 @@ pub async fn create_stack_pr(
     );
 
     let pr_number = pr_service
-        .create_pr(title, body, branch_name.clone(), parent_branch, draft)
+        .create_pr(title, full_body, branch_name.clone(), parent_branch, draft)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -763,6 +827,7 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         create_pull_request,
         merge_pull_request,
         close_pull_request,
+        update_pull_request_base,
         list_stacks,
         create_stack,
         create_stack_branch,

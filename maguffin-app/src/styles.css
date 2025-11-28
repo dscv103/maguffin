@@ -1460,3 +1460,46 @@ body {
   font-size: 0.85rem;
   margin-top: 4px;
 }
+
+/* Error Boundary */
+.error-boundary-fallback,
+.view-error-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  min-height: 200px;
+}
+
+.error-boundary-fallback h2,
+.view-error-fallback h3 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.error-boundary-fallback .error-message,
+.view-error-fallback p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.error-retry-btn {
+  padding: 10px 20px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.error-retry-btn:hover {
+  opacity: 0.9;
+}

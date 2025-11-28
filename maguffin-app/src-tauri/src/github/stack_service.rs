@@ -174,6 +174,22 @@ impl StackService {
 
             match rebase_result {
                 Ok(_) => {
+                    // Force push after successful rebase
+                    let push_result = {
+                        let git = self.git.read().await;
+                        git.force_push(&branch.name, "origin")
+                    };
+
+                    match push_result {
+                        Ok(_) => {
+                            tracing::info!("Force pushed branch {} to origin", branch.name);
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to force push {}: {}", branch.name, e);
+                            // Continue even if push fails - the rebase was successful locally
+                        }
+                    }
+
                     result.restacked.push(branch.name.clone());
 
                     // Update branch status in metadata
@@ -307,24 +323,59 @@ impl StackService {
 
     /// Update PR base branch after parent is merged.
     pub async fn update_pr_base(&self, branch_name: &str, new_base: &str) -> Result<()> {
-        let _pr_service = self
+        let pr_service = self
             .pr_service
             .as_ref()
             .ok_or_else(|| GitError::Branch("PR service not configured".to_string()))?;
 
-        // Find the branch and its PR number
+        // Find the branch and its PR ID
         let metadata = self.metadata.read().await;
-        let pr_number = metadata
+        let branch_info = metadata
             .stacks
             .iter()
             .flat_map(|s| s.branches.iter())
             .find(|b| b.name == branch_name)
-            .and_then(|b| b.pr_number);
+            .cloned();
+        drop(metadata);
 
-        if let Some(_pr_number) = pr_number {
-            // In a full implementation, we would update the PR base using the GitHub API
-            // This requires the updatePullRequest mutation
-            tracing::info!("Would update PR for {} to target {}", branch_name, new_base);
+        if let Some(branch) = branch_info {
+            if let Some(pr_number) = branch.pr_number {
+                // Need to get the PR ID from the PR number
+                match pr_service.get_pr_details(pr_number).await {
+                    Ok(details) => {
+                        match pr_service
+                            .update_pr_base(details.pr.id, new_base.to_string())
+                            .await
+                        {
+                            Ok(true) => {
+                                tracing::info!(
+                                    "Updated PR #{} for {} to target {}",
+                                    pr_number,
+                                    branch_name,
+                                    new_base
+                                );
+                            }
+                            Ok(false) => {
+                                tracing::warn!(
+                                    "Failed to update PR #{} base to {}",
+                                    pr_number,
+                                    new_base
+                                );
+                            }
+                            Err(e) => {
+                                tracing::error!("Error updating PR #{} base: {}", pr_number, e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!(
+                            "Failed to get PR details for #{}: {}",
+                            pr_number,
+                            e
+                        );
+                    }
+                }
+            }
         }
 
         Ok(())

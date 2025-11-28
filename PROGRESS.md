@@ -211,7 +211,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-004 | Markdown rendering for PR body | ✓ Complete |
 | FR-004 | CI/Check status indicators | ✓ Complete |
 | FR-008 | Conflict resolution UI | Not Started |
-| FR-010 | Background sync service | Not Started |
+| FR-010 | Background sync service | ✓ Complete |
 | NFR-002 | Cross-platform build and testing | Not Tested |
 
 ### Medium Priority (P1 - High)
@@ -221,9 +221,9 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-002 | Recent repositories list | ✓ Complete |
 | FR-004 | Unified diff view | Not Started |
 | FR-005 | Open PR in browser action | ✓ Complete (already implemented) |
-| FR-008 | Force push after restack | Partial |
-| FR-008 | Update PR base after parent merge | Stub Only |
-| FR-009 | Stack context in PR description | Not Started |
+| FR-008 | Force push after restack | ✓ Complete |
+| FR-008 | Update PR base after parent merge | ✓ Complete |
+| FR-009 | Stack context in PR description | ✓ Complete |
 | FR-010 | Rate limit handling and backoff | Partial |
 | NFR-001 | Performance benchmarking | Not Started |
 | NFR-004 | Dark/light theme support | ✓ Complete |
@@ -238,14 +238,14 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-009 | PR description template | Not Started |
 | NFR-004 | Onboarding flow | Not Started |
 | NFR-005 | Provider abstraction layer | Partial |
-| - | Settings UI | ✓ Complete (with theme settings) |
+| - | Settings UI | ✓ Complete (with theme/sync settings) |
 
 ### Technical Debt
 
+- [x] Wire force push to restack flow
+- [x] Complete PR base update mutation
+- [x] Add error boundaries to React components
 - [ ] Integrate reconciliation with UI (exists in StackService)
-- [ ] Wire force push to restack flow
-- [ ] Complete PR base update mutation
-- [ ] Add error boundaries to React components
 - [ ] Improve loading states and error handling in UI
 - [ ] Add frontend tests (currently none)
 

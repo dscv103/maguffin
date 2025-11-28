@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator } from "./components";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback } from "./components";
 import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
 import type { PullRequest, Stack } from "./types";
 
@@ -156,30 +156,34 @@ function App() {
         ) : (
           <>
             {currentView === "dashboard" && (
-              <PRDashboard onSelectPR={(pr) => setSelectedPR(pr)} />
+              <ErrorBoundary fallback={<ViewErrorFallback message="Failed to load pull requests dashboard" />}>
+                <PRDashboard onSelectPR={(pr) => setSelectedPR(pr)} />
+              </ErrorBoundary>
             )}
 
             {currentView === "stacks" && (
-              <div className="stacks-view">
-                <h1>Stacks</h1>
-                {stacksLoading ? (
-                  <div className="loading">
-                    <div className="spinner" />
-                    <p>Loading stacks...</p>
-                  </div>
-                ) : stacksError ? (
-                  <div className="error">
-                    <p className="error-message">{stacksError}</p>
-                  </div>
-                ) : stacks.length === 0 ? (
-                  <div className="empty-state">
-                    <p>No stacks found</p>
-                    <p className="hint">Create a stack to organize your branches</p>
-                  </div>
-                ) : (
-                  <StackList stacks={stacks} onRestack={handleRestack} />
-                )}
-              </div>
+              <ErrorBoundary fallback={<ViewErrorFallback message="Failed to load stacks view" />}>
+                <div className="stacks-view">
+                  <h1>Stacks</h1>
+                  {stacksLoading ? (
+                    <div className="loading">
+                      <div className="spinner" />
+                      <p>Loading stacks...</p>
+                    </div>
+                  ) : stacksError ? (
+                    <div className="error">
+                      <p className="error-message">{stacksError}</p>
+                    </div>
+                  ) : stacks.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No stacks found</p>
+                      <p className="hint">Create a stack to organize your branches</p>
+                    </div>
+                  ) : (
+                    <StackList stacks={stacks} onRestack={handleRestack} />
+                  )}
+                </div>
+              </ErrorBoundary>
             )}
 
             {currentView === "settings" && (

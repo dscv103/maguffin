@@ -194,6 +194,21 @@ mutation UpdatePullRequestBranch($pullRequestId: ID!, $expectedHeadOid: GitObjec
 }
 "#;
 
+/// Mutation to update pull request (change base branch, title, body, etc.).
+pub const UPDATE_PULL_REQUEST: &str = r#"
+mutation UpdatePullRequest($pullRequestId: ID!, $baseRefName: String) {
+  updatePullRequest(input: { 
+    pullRequestId: $pullRequestId
+    baseRefName: $baseRefName
+  }) {
+    pullRequest {
+      number
+      baseRefName
+    }
+  }
+}
+"#;
+
 /// Mutation to close a pull request.
 pub const CLOSE_PULL_REQUEST: &str = r#"
 mutation ClosePullRequest($pullRequestId: ID!) {
@@ -267,6 +282,15 @@ pub struct MergePullRequestVariables {
 #[serde(rename_all = "camelCase")]
 pub struct ClosePullRequestVariables {
     pub pull_request_id: String,
+}
+
+/// Variables for updating a pull request (changing base branch).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdatePullRequestVariables {
+    pub pull_request_id: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub base_ref_name: Option<String>,
 }
 
 /// Variables for getting repository ID.
