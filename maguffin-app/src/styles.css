@@ -1287,3 +1287,89 @@ body {
   color: var(--text-secondary);
   line-height: 1.6;
 }
+
+/* Keyboard Shortcuts */
+.shortcuts-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shortcut-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shortcut-key {
+  display: inline-block;
+  padding: 4px 10px;
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.85rem;
+  min-width: 28px;
+  text-align: center;
+}
+
+.shortcut-description {
+  color: var(--text-secondary);
+}
+
+/* Keyboard Shortcuts Modal */
+.keyboard-shortcuts-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.keyboard-shortcuts-modal {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: var(--shadow);
+}
+
+.keyboard-shortcuts-modal header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.keyboard-shortcuts-modal header h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.keyboard-shortcuts-modal header button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.keyboard-shortcuts-modal header button:hover {
+  color: var(--text-primary);
+}
+
+.keyboard-shortcuts-modal .shortcuts-list {
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

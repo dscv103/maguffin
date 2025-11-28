@@ -227,7 +227,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-010 | Rate limit handling and backoff | Partial |
 | NFR-001 | Performance benchmarking | Not Started |
 | NFR-004 | Dark/light theme support | ✓ Complete |
-| NFR-004 | Keyboard shortcuts | Not Started |
+| NFR-004 | Keyboard shortcuts | ✓ Complete |
 
 ### Lower Priority (P2 - Medium)
 

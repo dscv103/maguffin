@@ -1,6 +1,6 @@
-import { useState } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle } from "./components";
-import { useAuth, useStacks, useRepository, usePullRequests, useTheme } from "./hooks";
+import { useState, useCallback, useEffect } from "react";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp } from "./components";
+import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS } from "./hooks";
 import type { PullRequest, Stack } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
@@ -10,11 +10,48 @@ function App() {
   const { repository, recentRepositories, loading: repoLoading, error: repoError, openRepository, removeRecentRepository, clearRepository, clearError: clearRepoError } = useRepository();
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, toggleTheme } = useTheme();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const isAuthenticated = authState.type === "authenticated";
+
+  // Keyboard shortcuts
+  useAppKeyboardShortcuts(
+    {
+      onNavigateDashboard: useCallback(() => setCurrentView("dashboard"), []),
+      onNavigateStacks: useCallback(() => setCurrentView("stacks"), []),
+      onNavigateSettings: useCallback(() => setCurrentView("settings"), []),
+      onRefresh: useCallback(() => refreshPRs(), [refreshPRs]),
+      onToggleTheme: useCallback(() => toggleTheme(), [toggleTheme]),
+      onEscape: useCallback(() => {
+        if (showShortcuts) {
+          setShowShortcuts(false);
+        } else if (selectedPR) {
+          setSelectedPR(null);
+        }
+      }, [showShortcuts, selectedPR]),
+    },
+    isAuthenticated
+  );
+
+  // Add ? shortcut for showing keyboard shortcuts help
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "?" && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      const target = e.target as HTMLElement;
+      if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA" && !target.isContentEditable) {
+        e.preventDefault();
+        setShowShortcuts(true);
+      }
+    }
+  }, []);
+
+  // Register ? key handler
+  useEffect(() => {
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   if (!isAuthenticated) {
     return (
@@ -148,6 +185,18 @@ function App() {
                 </section>
 
                 <section className="settings-section">
+                  <h2>Keyboard Shortcuts</h2>
+                  <div className="shortcuts-preview">
+                    {AVAILABLE_SHORTCUTS.map((shortcut) => (
+                      <div key={shortcut.key} className="shortcut-item">
+                        <kbd className="shortcut-key">{shortcut.key}</kbd>
+                        <span className="shortcut-description">{shortcut.description}</span>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+
+                <section className="settings-section">
                   <h2>About</h2>
                   <p className="about-text">Maguffin is a cross-platform Git client with a Tower-style PR dashboard and Graphite-style stacked PR workflow.</p>
                 </section>
@@ -164,6 +213,10 @@ function App() {
           onClose={() => setSelectedPR(null)}
           onActionComplete={handlePRActionComplete}
         />
+      )}
+
+      {showShortcuts && (
+        <KeyboardShortcutsHelp onClose={() => setShowShortcuts(false)} />
       )}
     </div>
   );

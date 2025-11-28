@@ -5,3 +5,4 @@ export { usePullRequestActions, type CreatePRParams } from "./usePullRequestActi
 export { useStacks } from "./useStacks";
 export { useRepository } from "./useRepository";
 export { useTheme } from "./useTheme";
+export { useKeyboardShortcuts, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS } from "./useKeyboardShortcuts";
