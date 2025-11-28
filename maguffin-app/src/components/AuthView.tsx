@@ -29,7 +29,7 @@ export function AuthView({ onAuthenticated }: AuthViewProps) {
     }, pollInterval);
 
     return () => clearInterval(interval);
-  }, [authState.type, authState.type === "pending" ? authState.interval : undefined, pollDeviceFlow]);
+  }, [authState.type, authState.interval, pollDeviceFlow]);
 
   if (loading) {
     return (
