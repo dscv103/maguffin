@@ -3,6 +3,7 @@
 //! This module contains the IPC command handlers that bridge the
 //! frontend UI to the Rust backend.
 
+use crate::cache::{Cache, RecentRepository};
 use crate::domain::repo::GitHubRemote;
 use crate::domain::stack::{RestackResult, Stack};
 use crate::domain::{AuthState, PullRequest, Repository, SyncState};
@@ -20,6 +21,7 @@ use tokio::sync::RwLock;
 /// - AuthService for authentication
 /// - GitHubClient for API calls
 /// - Current repository context
+/// - Cache for persistent storage
 pub struct AppState {
     /// Authentication service
     auth_service: AuthService,
@@ -29,6 +31,9 @@ pub struct AppState {
 
     /// Current repository context (owner, repo, path)
     current_repo: Arc<RwLock<Option<RepoContext>>>,
+
+    /// Local cache for recent repositories and settings
+    cache: Arc<Cache>,
 }
 
 /// Context for the currently opened repository.
@@ -69,11 +74,31 @@ impl AppState {
             AuthService::default()
         });
 
+        // Create cache in the user's data directory
+        let cache = Self::create_cache();
+
         Self {
             auth_service,
             github_client: Arc::new(github_client),
             current_repo: Arc::new(RwLock::new(None)),
+            cache: Arc::new(cache),
         }
+    }
+
+    /// Create cache, falling back to in-memory if file-based fails.
+    fn create_cache() -> Cache {
+        // Try to get user's data directory
+        if let Some(data_dir) = dirs::data_dir() {
+            let cache_dir = data_dir.join("maguffin");
+            if std::fs::create_dir_all(&cache_dir).is_ok() {
+                let cache_path = cache_dir.join("cache.db");
+                if let Ok(cache) = Cache::open(&cache_path) {
+                    return cache;
+                }
+            }
+        }
+        // Fall back to in-memory cache
+        Cache::in_memory().expect("Failed to create in-memory cache")
     }
 }
 
@@ -175,6 +200,14 @@ pub async fn open_repository(
     };
     *state.current_repo.write().await = Some(context);
 
+    // Save to recent repositories
+    let path_str = path.to_string_lossy().to_string();
+    let _ = state.cache.save_recent_repository(
+        &path_str,
+        &github_remote.owner,
+        &github_remote.name,
+    );
+
     Ok(Repository {
         path,
         owner: github_remote.owner,
@@ -184,6 +217,29 @@ pub async fn open_repository(
         remote_url,
         sync_state: SyncState::Unknown,
     })
+}
+
+/// Get list of recent repositories.
+#[tauri::command]
+pub async fn get_recent_repositories(
+    state: State<'_, AppState>,
+) -> Result<Vec<RecentRepository>, String> {
+    state
+        .cache
+        .get_recent_repositories(10)
+        .map_err(|e| e.to_string())
+}
+
+/// Remove a repository from recent list.
+#[tauri::command]
+pub async fn remove_recent_repository(
+    state: State<'_, AppState>,
+    path: String,
+) -> Result<(), String> {
+    state
+        .cache
+        .remove_recent_repository(&path)
+        .map_err(|e| e.to_string())
 }
 
 /// List pull requests for the current repository.
@@ -599,6 +655,8 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         poll_device_flow,
         logout,
         open_repository,
+        get_recent_repositories,
+        remove_recent_repository,
         list_pull_requests,
         get_pull_request,
         checkout_pull_request,

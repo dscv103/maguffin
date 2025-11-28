@@ -43,7 +43,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] **Current Branch Detection** - Identify current HEAD branch
 - [x] **Default Branch Detection** - Detect main/master or configured default
 - [x] **Repository Context Management** - AppState with current repo tracking
-- [ ] **Recent Repositories List** - Not yet implemented
+- [x] **Recent Repositories List** - Stored in local SQLite cache with UI to select from recent
 
 ### Pull Request Dashboard - List View (FR-003)
 
@@ -59,7 +59,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
   - [x] Updated timestamp
   - [x] Commit count, additions, deletions, changed files
 - [x] **Frontend Component** - `PRDashboard.tsx` component
-- [ ] **Sorting Options** - Not yet implemented in UI
+- [x] **Sorting Options** - Sort by updated, created, title, or activity with asc/desc toggle
 - [ ] **Pagination/Virtual Scrolling** - Backend supports pagination, UI uses simple list
 
 ### Pull Request Dashboard - Detail View (FR-004)
@@ -73,7 +73,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
   - [x] Review requests (pending reviewers)
   - [x] Merge eligibility status (mergeable field)
 - [x] **Frontend Component** - `PRDetailPanel.tsx` component
-- [ ] **Markdown Rendering** - Body displayed as raw text (no rendering)
+- [x] **Markdown Rendering** - Body displayed with Markdown component for headings, bold, italic, code, links, lists
 - [ ] **Unified Diff View** - Not implemented
 - [ ] **CI/Check Status Indicators** - Not implemented
 
@@ -207,8 +207,8 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 
 | Requirement | Item | Status |
 |-------------|------|--------|
-| FR-003 | PR sorting options in UI | Not Started |
-| FR-004 | Markdown rendering for PR body | Not Started |
+| FR-003 | PR sorting options in UI | ✓ Complete |
+| FR-004 | Markdown rendering for PR body | ✓ Complete |
 | FR-004 | CI/Check status indicators | Not Started |
 | FR-008 | Conflict resolution UI | Not Started |
 | FR-010 | Background sync service | Not Started |
@@ -218,9 +218,9 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 
 | Requirement | Item | Status |
 |-------------|------|--------|
-| FR-002 | Recent repositories list | Not Started |
+| FR-002 | Recent repositories list | ✓ Complete |
 | FR-004 | Unified diff view | Not Started |
-| FR-005 | Open PR in browser action | Not Started |
+| FR-005 | Open PR in browser action | ✓ Complete (already implemented) |
 | FR-008 | Force push after restack | Partial |
 | FR-008 | Update PR base after parent merge | Stub Only |
 | FR-009 | Stack context in PR description | Not Started |
@@ -257,20 +257,20 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 |--------|------------|--------|
 | domain/pr | 3 | ✓ Pass |
 | domain/stack | 5 | ✓ Pass |
-| domain/auth | 2 | ✓ Pass |
-| domain/repo | 2 | ✓ Pass |
-| domain/sync | 2 | ✓ Pass |
+| domain/auth | 4 | ✓ Pass |
+| domain/repo | 8 | ✓ Pass |
+| domain/sync | 5 | ✓ Pass |
 | config | 3 | ✓ Pass |
 | git | 3 | ✓ Pass |
-| github/mod | 1 | ✓ Pass |
+| github/mod | 3 | ✓ Pass |
 | github/pr_service | 1 | ✓ Pass |
 | github/stack_service | 1 | ✓ Pass |
 | github/auth_service | 2 | ✓ Pass |
-| github/queries | 4 | ✓ Pass |
-| cache | 4 | ✓ Pass |
+| github/queries | 2 | ✓ Pass |
+| cache | 6 | ✓ Pass |
 | keyring | 2 | ✓ Pass (1 ignored) |
-| error | 6 | ✓ Pass |
-| **Total** | **50+** | ✓ All Pass |
+| error | 3 | ✓ Pass |
+| **Total** | **52** | ✓ All Pass |
 
 ---
 

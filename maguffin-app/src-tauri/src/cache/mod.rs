@@ -4,9 +4,20 @@
 //! and other cached information.
 
 use crate::error::{Result, StorageError};
+use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
+use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Mutex;
+
+/// Recent repository entry.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RecentRepository {
+    pub path: String,
+    pub owner: String,
+    pub name: String,
+    pub last_opened: DateTime<Utc>,
+}
 
 /// Local SQLite cache for the application.
 pub struct Cache {
@@ -73,6 +84,80 @@ impl Cache {
             "#,
         )
         .map_err(|e| StorageError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    /// Save a recent repository.
+    pub fn save_recent_repository(
+        &self,
+        path: &str,
+        owner: &str,
+        name: &str,
+    ) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
+
+        let now = Utc::now().to_rfc3339();
+
+        conn.execute(
+            "INSERT OR REPLACE INTO repositories (path, owner, name, last_opened) VALUES (?1, ?2, ?3, ?4)",
+            params![path, owner, name, now],
+        )
+        .map_err(|e| StorageError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    /// Get recent repositories, ordered by last opened (most recent first).
+    pub fn get_recent_repositories(&self, limit: usize) -> Result<Vec<RecentRepository>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT path, owner, name, last_opened FROM repositories ORDER BY last_opened DESC LIMIT ?1",
+            )
+            .map_err(|e| StorageError::Database(e.to_string()))?;
+
+        let repos = stmt
+            .query_map(params![limit as i64], |row| {
+                let path: String = row.get(0)?;
+                let owner: String = row.get(1)?;
+                let name: String = row.get(2)?;
+                let last_opened_str: String = row.get(3)?;
+
+                let last_opened = DateTime::parse_from_rfc3339(&last_opened_str)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+
+                Ok(RecentRepository {
+                    path,
+                    owner,
+                    name,
+                    last_opened,
+                })
+            })
+            .map_err(|e| StorageError::Database(e.to_string()))?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| StorageError::Database(e.to_string()))?;
+
+        Ok(repos)
+    }
+
+    /// Remove a repository from the recent list.
+    pub fn remove_recent_repository(&self, path: &str) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
+
+        conn.execute("DELETE FROM repositories WHERE path = ?1", params![path])
+            .map_err(|e| StorageError::Database(e.to_string()))?;
 
         Ok(())
     }
@@ -170,5 +255,36 @@ mod tests {
         // Settings are not cleared, only data tables
         let value = cache.get_setting("key").unwrap();
         assert_eq!(value, Some("value".to_string()));
+    }
+
+    #[test]
+    fn test_recent_repositories() {
+        let cache = Cache::in_memory().unwrap();
+
+        cache
+            .save_recent_repository("/path/to/repo1", "owner1", "repo1")
+            .unwrap();
+        cache
+            .save_recent_repository("/path/to/repo2", "owner2", "repo2")
+            .unwrap();
+
+        let repos = cache.get_recent_repositories(10).unwrap();
+        assert_eq!(repos.len(), 2);
+        // Most recent first
+        assert_eq!(repos[0].name, "repo2");
+        assert_eq!(repos[1].name, "repo1");
+    }
+
+    #[test]
+    fn test_remove_recent_repository() {
+        let cache = Cache::in_memory().unwrap();
+
+        cache
+            .save_recent_repository("/path/to/repo1", "owner1", "repo1")
+            .unwrap();
+        cache.remove_recent_repository("/path/to/repo1").unwrap();
+
+        let repos = cache.get_recent_repositories(10).unwrap();
+        assert_eq!(repos.len(), 0);
     }
 }

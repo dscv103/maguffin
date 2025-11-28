@@ -1,25 +1,30 @@
 import React, { useState } from "react";
-import type { Repository } from "../types";
+import type { Repository, RecentRepository } from "../types";
 
 interface RepoSelectorProps {
   repository: Repository | null;
+  recentRepositories?: RecentRepository[];
   loading: boolean;
   error: string | null;
   onOpenRepository: (path: string) => Promise<Repository | null>;
   onClearRepository: () => void;
+  onRemoveRecentRepository?: (path: string) => void;
   onClearError?: () => void;
 }
 
 export function RepoSelector({
   repository,
+  recentRepositories = [],
   loading,
   error,
   onOpenRepository,
   onClearRepository,
+  onRemoveRecentRepository,
   onClearError,
 }: RepoSelectorProps) {
   const [path, setPath] = useState("");
   const [isEditing, setIsEditing] = useState(false);
+  const [showRecent, setShowRecent] = useState(false);
 
   const handlePathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPath(e.target.value);
@@ -36,8 +41,23 @@ export function RepoSelector({
       if (result) {
         setIsEditing(false);
         setPath("");
+        setShowRecent(false);
       }
     }
+  };
+
+  const handleOpenRecent = async (recentPath: string) => {
+    const result = await onOpenRepository(recentPath);
+    if (result) {
+      setIsEditing(false);
+      setPath("");
+      setShowRecent(false);
+    }
+  };
+
+  const handleRemoveRecent = (e: React.MouseEvent, recentPath: string) => {
+    e.stopPropagation();
+    onRemoveRecentRepository?.(recentPath);
   };
 
   if (loading) {
@@ -84,6 +104,7 @@ export function RepoSelector({
             type="text"
             value={path}
             onChange={handlePathChange}
+            onFocus={() => setShowRecent(true)}
             placeholder="Enter repository path..."
             className="repo-path-input"
             autoFocus
@@ -94,6 +115,46 @@ export function RepoSelector({
         </div>
         {error && <p className="error-message">{error}</p>}
       </form>
+
+      {showRecent && recentRepositories.length > 0 && !path && (
+        <div className="recent-repos">
+          <div className="recent-repos-header">
+            <span>Recent Repositories</span>
+            <button
+              className="close-recent-btn"
+              onClick={() => setShowRecent(false)}
+              title="Close"
+            >
+              ✕
+            </button>
+          </div>
+          <ul className="recent-repos-list">
+            {recentRepositories.map((repo) => (
+              <li key={repo.path}>
+                <button
+                  className="recent-repo-item"
+                  onClick={() => handleOpenRecent(repo.path)}
+                >
+                  <span className="recent-repo-icon">📁</span>
+                  <div className="recent-repo-details">
+                    <span className="recent-repo-name">
+                      {repo.owner}/{repo.name}
+                    </span>
+                    <span className="recent-repo-path">{repo.path}</span>
+                  </div>
+                  <button
+                    className="remove-recent-btn"
+                    onClick={(e) => handleRemoveRecent(e, repo.path)}
+                    title="Remove from recent"
+                  >
+                    ✕
+                  </button>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }
