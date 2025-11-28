@@ -29,7 +29,10 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repository {
     /// Local path to the repository (serialized with forward slashes for cross-platform consistency)
-    #[serde(serialize_with = "serialize_path", deserialize_with = "deserialize_path")]
+    #[serde(
+        serialize_with = "serialize_path",
+        deserialize_with = "deserialize_path"
+    )]
     pub path: PathBuf,
 
     /// GitHub owner (user or organization)
@@ -181,7 +184,10 @@ impl GitHubRemote {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecentRepository {
     /// Local path (serialized with forward slashes for cross-platform consistency)
-    #[serde(serialize_with = "serialize_path", deserialize_with = "deserialize_path")]
+    #[serde(
+        serialize_with = "serialize_path",
+        deserialize_with = "deserialize_path"
+    )]
     pub path: PathBuf,
 
     /// Repository full name

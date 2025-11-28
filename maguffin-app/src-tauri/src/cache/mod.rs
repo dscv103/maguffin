@@ -4,7 +4,7 @@
 //! and other cached information.
 
 use crate::error::{Result, StorageError};
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use std::path::Path;
 use std::sync::Mutex;
 
@@ -16,8 +16,7 @@ pub struct Cache {
 impl Cache {
     /// Open or create a cache at the given path.
     pub fn open(path: &Path) -> Result<Self> {
-        let conn = Connection::open(path)
-            .map_err(|e| StorageError::Database(e.to_string()))?;
+        let conn = Connection::open(path).map_err(|e| StorageError::Database(e.to_string()))?;
 
         let cache = Self {
             conn: Mutex::new(conn),
@@ -29,8 +28,8 @@ impl Cache {
 
     /// Open an in-memory cache (useful for testing).
     pub fn in_memory() -> Result<Self> {
-        let conn = Connection::open_in_memory()
-            .map_err(|e| StorageError::Database(e.to_string()))?;
+        let conn =
+            Connection::open_in_memory().map_err(|e| StorageError::Database(e.to_string()))?;
 
         let cache = Self {
             conn: Mutex::new(conn),
@@ -42,9 +41,10 @@ impl Cache {
 
     /// Initialize the database schema.
     fn initialize(&self) -> Result<()> {
-        let conn = self.conn.lock().map_err(|e| {
-            StorageError::Database(format!("Lock error: {}", e))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
 
         conn.execute_batch(
             r#"
@@ -79,9 +79,10 @@ impl Cache {
 
     /// Save a setting.
     pub fn set_setting(&self, key: &str, value: &str) -> Result<()> {
-        let conn = self.conn.lock().map_err(|e| {
-            StorageError::Database(format!("Lock error: {}", e))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
 
         conn.execute(
             "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
@@ -94,9 +95,10 @@ impl Cache {
 
     /// Get a setting.
     pub fn get_setting(&self, key: &str) -> Result<Option<String>> {
-        let conn = self.conn.lock().map_err(|e| {
-            StorageError::Database(format!("Lock error: {}", e))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
 
         let result = conn.query_row(
             "SELECT value FROM settings WHERE key = ?1",
@@ -113,9 +115,10 @@ impl Cache {
 
     /// Clear all cached data.
     pub fn clear(&self) -> Result<()> {
-        let conn = self.conn.lock().map_err(|e| {
-            StorageError::Database(format!("Lock error: {}", e))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
 
         conn.execute_batch(
             r#"

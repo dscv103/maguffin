@@ -12,7 +12,7 @@ pub mod sync;
 // Re-export commonly used types
 pub use auth::{AuthState, AuthenticatedUser, DeviceFlowPending};
 pub use pr::{
-    Author, ChangedFile, ChangeType, Commit, CreatePrOptions, Label, MergeMethod, Mergeable,
+    Author, ChangeType, ChangedFile, Commit, CreatePrOptions, Label, MergeMethod, Mergeable,
     PrState, PullRequest, PullRequestDetails, Review, ReviewDecision, ReviewState,
 };
 pub use repo::{GitHubRemote, RecentRepository, Repository, SyncState};

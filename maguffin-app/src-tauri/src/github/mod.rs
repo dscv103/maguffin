@@ -4,8 +4,8 @@
 //! It handles authentication, rate limiting, pagination, and query execution.
 
 pub mod auth_service;
-pub mod queries;
 pub mod pr_service;
+pub mod queries;
 pub mod stack_service;
 
 use crate::error::{GitHubError, Result};
@@ -26,6 +26,16 @@ pub struct GitHubClient {
 
     /// API endpoint
     endpoint: String,
+}
+
+impl Default for GitHubClient {
+    fn default() -> Self {
+        Self {
+            http: reqwest::Client::new(),
+            token: Arc::new(RwLock::new(None)),
+            endpoint: "https://api.github.com/graphql".to_string(),
+        }
+    }
 }
 
 impl GitHubClient {

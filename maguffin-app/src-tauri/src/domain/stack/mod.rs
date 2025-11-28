@@ -314,9 +314,18 @@ mod tests {
     #[test]
     fn test_children_of() {
         let mut stack = Stack::new("main".to_string());
-        stack.add_branch(StackBranch::new("feature-a".to_string(), "main".to_string()));
-        stack.add_branch(StackBranch::new("feature-b".to_string(), "feature-a".to_string()));
-        stack.add_branch(StackBranch::new("feature-c".to_string(), "main".to_string()));
+        stack.add_branch(StackBranch::new(
+            "feature-a".to_string(),
+            "main".to_string(),
+        ));
+        stack.add_branch(StackBranch::new(
+            "feature-b".to_string(),
+            "feature-a".to_string(),
+        ));
+        stack.add_branch(StackBranch::new(
+            "feature-c".to_string(),
+            "main".to_string(),
+        ));
 
         let children = stack.children_of("main");
         assert_eq!(children.len(), 2);
@@ -337,7 +346,10 @@ mod tests {
     fn test_stack_metadata_find_stack_containing() {
         let mut metadata = StackMetadata::default();
         let mut stack = Stack::new("main".to_string());
-        stack.add_branch(StackBranch::new("feature-a".to_string(), "main".to_string()));
+        stack.add_branch(StackBranch::new(
+            "feature-a".to_string(),
+            "main".to_string(),
+        ));
         metadata.add_stack(stack);
 
         assert!(metadata.find_stack_containing("feature-a").is_some());

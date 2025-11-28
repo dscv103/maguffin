@@ -54,7 +54,7 @@ impl Default for AppState {
 
 impl AppState {
     /// Create a new application state.
-    /// 
+    ///
     /// This method handles service initialization failures gracefully by using
     /// fallback/default services where possible, rather than panicking.
     pub fn new() -> Self {
@@ -126,11 +126,7 @@ pub async fn poll_device_flow(state: State<'_, AppState>) -> Result<AuthState, S
 #[tauri::command]
 pub async fn logout(state: State<'_, AppState>) -> Result<(), String> {
     state.github_client.clear_token().await;
-    state
-        .auth_service
-        .logout()
-        .await
-        .map_err(|e| e.to_string())
+    state.auth_service.logout().await.map_err(|e| e.to_string())
 }
 
 /// Open a local repository.
@@ -142,31 +138,32 @@ pub async fn open_repository(
     let path = PathBuf::from(&path);
 
     // Wrap git operations in spawn_blocking to avoid blocking the async runtime
-    let (current_branch, default_branch, remote_url, github_remote) = tokio::task::spawn_blocking({
-        let path = path.clone();
-        move || {
-            // Open the git repository
-            let git = Git2Backend::discover(&path).map_err(|e| e.to_string())?;
+    let (current_branch, default_branch, remote_url, github_remote) =
+        tokio::task::spawn_blocking({
+            let path = path.clone();
+            move || {
+                // Open the git repository
+                let git = Git2Backend::discover(&path).map_err(|e| e.to_string())?;
 
-            // Get current branch
-            let current_branch = git.current_branch().map_err(|e| e.to_string())?;
+                // Get current branch
+                let current_branch = git.current_branch().map_err(|e| e.to_string())?;
 
-            // Get default branch
-            let default_branch = git.default_branch().unwrap_or_else(|_| "main".to_string());
+                // Get default branch
+                let default_branch = git.default_branch().unwrap_or_else(|_| "main".to_string());
 
-            // Get remote URL and parse GitHub info
-            let repo = git2::Repository::open(&path).map_err(|e| e.to_string())?;
-            let remote = repo.find_remote("origin").map_err(|e| e.to_string())?;
-            let remote_url = remote.url().ok_or("No remote URL found")?.to_string();
+                // Get remote URL and parse GitHub info
+                let repo = git2::Repository::open(&path).map_err(|e| e.to_string())?;
+                let remote = repo.find_remote("origin").map_err(|e| e.to_string())?;
+                let remote_url = remote.url().ok_or("No remote URL found")?.to_string();
 
-            let github_remote =
-                GitHubRemote::parse(&remote_url).ok_or("Could not parse GitHub remote URL")?;
+                let github_remote =
+                    GitHubRemote::parse(&remote_url).ok_or("Could not parse GitHub remote URL")?;
 
-            Ok::<_, String>((current_branch, default_branch, remote_url, github_remote))
-        }
-    })
-    .await
-    .map_err(|e| format!("Git operation task failed: {:?}", e))??;
+                Ok::<_, String>((current_branch, default_branch, remote_url, github_remote))
+            }
+        })
+        .await
+        .map_err(|e| format!("Git operation task failed: {:?}", e))??;
 
     // Store the repo context
     let context = RepoContext {
@@ -243,10 +240,7 @@ pub async fn get_pull_request(
 
 /// Checkout a PR branch locally.
 #[tauri::command]
-pub async fn checkout_pull_request(
-    state: State<'_, AppState>,
-    number: i64,
-) -> Result<(), String> {
+pub async fn checkout_pull_request(state: State<'_, AppState>, number: i64) -> Result<(), String> {
     let repo = state
         .current_repo
         .read()
@@ -289,9 +283,7 @@ pub async fn checkout_pull_request(
                 let remote_ref = git_repo
                     .find_reference(&format!("refs/remotes/{}", remote_branch))
                     .map_err(|e| format!("Remote branch not found: {}", e))?;
-                let commit = remote_ref
-                    .peel_to_commit()
-                    .map_err(|e| e.to_string())?;
+                let commit = remote_ref.peel_to_commit().map_err(|e| e.to_string())?;
                 git_repo
                     .branch(&branch_name, &commit, false)
                     .map_err(|e| e.to_string())?;
@@ -325,7 +317,7 @@ pub async fn list_stacks(state: State<'_, AppState>) -> Result<Vec<Stack>, Strin
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path;
-    
+
     // Read stack metadata directly from file (no git operations needed)
     tokio::task::spawn_blocking(move || {
         let metadata_path = repo_path.join(".git").join("stack-metadata.json");
@@ -357,20 +349,19 @@ pub async fn create_stack(
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path.clone();
-    
-    // Create git backend in spawn_blocking since git2 is not Send
-    let git = tokio::task::spawn_blocking(move || {
-        Git2Backend::open(&repo_path).map_err(|e| e.to_string())
+
+    // Run entire operation in spawn_blocking since StackService contains non-Send types
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
+
+        // Use block_on for the async method since we're in a blocking context
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async { stack_service.create_stack(root_branch).await })
+            .map_err(|e| e.to_string())
     })
     .await
-    .map_err(|e| format!("Git task failed: {:?}", e))??;
-
-    let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
-
-    stack_service
-        .create_stack(root_branch)
-        .await
-        .map_err(|e| e.to_string())
+    .map_err(|e| format!("Task failed: {:?}", e))?
 }
 
 /// Create a new branch on an existing stack.
@@ -389,28 +380,32 @@ pub async fn create_stack_branch(
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path.clone();
-    
-    // Create git backend in spawn_blocking since git2 is not Send
-    let git = tokio::task::spawn_blocking(move || {
-        Git2Backend::open(&repo_path).map_err(|e| e.to_string())
+
+    // Run entire operation in spawn_blocking since StackService contains non-Send types
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
+        let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
+
+        // Use block_on for the async method since we're in a blocking context
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async {
+            stack_service
+                .create_stack_branch(stack_uuid, branch_name, parent_name)
+                .await
+        })
+        .map_err(|e| e.to_string())
     })
     .await
-    .map_err(|e| format!("Git task failed: {:?}", e))??;
-
-    let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
-    let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
-
-    stack_service
-        .create_stack_branch(stack_uuid, branch_name, parent_name)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(())
+    .map_err(|e| format!("Task failed: {:?}", e))?
 }
 
 /// Restack all branches in a stack.
 #[tauri::command]
-pub async fn restack(state: State<'_, AppState>, stack_id: String) -> Result<RestackResult, String> {
+pub async fn restack(
+    state: State<'_, AppState>,
+    stack_id: String,
+) -> Result<RestackResult, String> {
     let repo = state
         .current_repo
         .read()
@@ -419,21 +414,20 @@ pub async fn restack(state: State<'_, AppState>, stack_id: String) -> Result<Res
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path.clone();
-    
-    // Create git backend in spawn_blocking since git2 is not Send
-    let git = tokio::task::spawn_blocking(move || {
-        Git2Backend::open(&repo_path).map_err(|e| e.to_string())
+
+    // Run entire operation in spawn_blocking since StackService contains non-Send types
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
+        let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
+
+        // Use block_on for the async method since we're in a blocking context
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async { stack_service.restack(stack_uuid).await })
+            .map_err(|e| e.to_string())
     })
     .await
-    .map_err(|e| format!("Git task failed: {:?}", e))??;
-
-    let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
-    let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
-
-    stack_service
-        .restack(stack_uuid)
-        .await
-        .map_err(|e| e.to_string())
+    .map_err(|e| format!("Task failed: {:?}", e))?
 }
 
 /// Generate all command handlers for registration.

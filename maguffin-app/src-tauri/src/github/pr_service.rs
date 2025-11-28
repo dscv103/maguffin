@@ -4,8 +4,8 @@
 //! bridging the domain types with the GitHub GraphQL API.
 
 use crate::domain::pr::{
-    Author, ChangedFile, ChangeType, Commit, Label, MergeMethod, Mergeable, PrState,
-    PullRequest, PullRequestDetails, Review, ReviewDecision, ReviewState,
+    Author, ChangeType, ChangedFile, Commit, Label, MergeMethod, Mergeable, PrState, PullRequest,
+    PullRequestDetails, Review, ReviewDecision, ReviewState,
 };
 use crate::error::{GitHubError, Result};
 use crate::github::queries::{
@@ -180,15 +180,20 @@ impl PrService {
 
     /// Convert a GraphQL PR node to domain type.
     fn convert_pr_node(node: GqlPullRequestNode) -> PullRequest {
-        let author = node.author.map(|a| Author {
-            login: a.login,
-            avatar_url: a.avatar_url,
-        }).unwrap_or(Author {
-            login: "ghost".to_string(),
-            avatar_url: String::new(),
-        });
+        let author = node
+            .author
+            .map(|a| Author {
+                login: a.login,
+                avatar_url: a.avatar_url,
+            })
+            .unwrap_or(Author {
+                login: "ghost".to_string(),
+                avatar_url: String::new(),
+            });
 
-        let labels: Vec<Label> = node.labels.nodes
+        let labels: Vec<Label> = node
+            .labels
+            .nodes
             .unwrap_or_default()
             .into_iter()
             .map(|l| Label {
@@ -248,13 +253,16 @@ impl PrService {
 
     /// Convert detailed PR from GraphQL to domain type.
     fn convert_pr_details(pr: GqlPullRequestDetails) -> PullRequestDetails {
-        let author = pr.author.map(|a| Author {
-            login: a.login,
-            avatar_url: a.avatar_url,
-        }).unwrap_or(Author {
-            login: "ghost".to_string(),
-            avatar_url: String::new(),
-        });
+        let author = pr
+            .author
+            .map(|a| Author {
+                login: a.login,
+                avatar_url: a.avatar_url,
+            })
+            .unwrap_or(Author {
+                login: "ghost".to_string(),
+                avatar_url: String::new(),
+            });
 
         let state = match pr.state.as_str() {
             "OPEN" => PrState::Open,
@@ -277,11 +285,15 @@ impl PrService {
             .map(|dt| dt.with_timezone(&Utc))
             .unwrap_or_else(|_| Utc::now());
 
-        let commits: Vec<Commit> = pr.commits.nodes
+        let commits: Vec<Commit> = pr
+            .commits
+            .nodes
             .unwrap_or_default()
             .into_iter()
             .map(|c| {
-                let authored_date = c.commit.author
+                let authored_date = c
+                    .commit
+                    .author
                     .as_ref()
                     .and_then(|a| a.date.as_ref())
                     .and_then(|d| DateTime::parse_from_rfc3339(d).ok())
@@ -291,7 +303,9 @@ impl PrService {
                 Commit {
                     oid: c.commit.oid,
                     message: c.commit.message,
-                    author_name: c.commit.author
+                    author_name: c
+                        .commit
+                        .author
                         .and_then(|a| a.name)
                         .unwrap_or_else(|| "Unknown".to_string()),
                     authored_date,
@@ -299,7 +313,9 @@ impl PrService {
             })
             .collect();
 
-        let files: Vec<ChangedFile> = pr.files.nodes
+        let files: Vec<ChangedFile> = pr
+            .files
+            .nodes
             .unwrap_or_default()
             .into_iter()
             .map(|f| {
@@ -321,7 +337,9 @@ impl PrService {
             })
             .collect();
 
-        let reviews: Vec<Review> = pr.reviews.nodes
+        let reviews: Vec<Review> = pr
+            .reviews
+            .nodes
             .unwrap_or_default()
             .into_iter()
             .filter_map(|r| {
@@ -334,7 +352,8 @@ impl PrService {
                     "DISMISSED" => ReviewState::Dismissed,
                     _ => ReviewState::Pending,
                 };
-                let submitted_at = r.submitted_at
+                let submitted_at = r
+                    .submitted_at
                     .and_then(|d| DateTime::parse_from_rfc3339(&d).ok())
                     .map(|dt| dt.with_timezone(&Utc))
                     .unwrap_or_else(Utc::now);
@@ -347,7 +366,9 @@ impl PrService {
             })
             .collect();
 
-        let review_requests: Vec<String> = pr.review_requests.nodes
+        let review_requests: Vec<String> = pr
+            .review_requests
+            .nodes
             .unwrap_or_default()
             .into_iter()
             .filter_map(|r| r.requested_reviewer?.login)
@@ -364,7 +385,7 @@ impl PrService {
             author,
             head_ref: pr.head_ref_name,
             base_ref: pr.base_ref_name,
-            labels: Vec::new(), // Not included in details query
+            labels: Vec::new(),    // Not included in details query
             review_decision: None, // Could add to query if needed
             mergeable,
             created_at,

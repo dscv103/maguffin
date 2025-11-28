@@ -141,10 +141,7 @@ impl Git2Backend {
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
             if stderr.contains("conflict") || stderr.contains("CONFLICT") {
-                Err(GitError::Conflict {
-                    files: Vec::new(),
-                }
-                .into())
+                Err(GitError::Conflict { files: Vec::new() }.into())
             } else {
                 Err(GitError::RebaseFailed(stderr.to_string()).into())
             }
@@ -249,10 +246,7 @@ impl GitOperations for Git2Backend {
     }
 
     fn branch_exists(&self, name: &str) -> Result<bool> {
-        Ok(self
-            .repo
-            .find_branch(name, git2::BranchType::Local)
-            .is_ok())
+        Ok(self.repo.find_branch(name, git2::BranchType::Local).is_ok())
     }
 
     fn default_branch(&self) -> Result<String> {
@@ -327,7 +321,9 @@ impl GitOperations for CliBackend {
     }
 
     fn branch_exists(&self, name: &str) -> Result<bool> {
-        Ok(self.run(&["rev-parse", "--verify", &format!("refs/heads/{}", name)]).is_ok())
+        Ok(self
+            .run(&["rev-parse", "--verify", &format!("refs/heads/{}", name)])
+            .is_ok())
     }
 
     fn default_branch(&self) -> Result<String> {
