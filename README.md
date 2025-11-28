@@ -16,6 +16,7 @@ maguffin/
 ├── REQUIREMENTS.md          # Functional and non-functional requirements
 ├── SOLUTIONPLAN.md          # Architecture and implementation plan
 ├── PROJECTSTATE.md          # SDLC phase tracking and handoff ledger
+├── PROGRESS.md              # Development progress tracking
 ├── docs/
 │   ├── Agent-Handoff-and-Ownership.md
 │   └── adr/                 # Architecture Decision Records
