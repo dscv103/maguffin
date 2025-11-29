@@ -2367,6 +2367,7 @@ name = "maguffin-app"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "async-trait",
  "chrono",
  "dirs",
  "git2",
