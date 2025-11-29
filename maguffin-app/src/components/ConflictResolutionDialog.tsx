@@ -161,8 +161,14 @@ function ConflictBranchItem({ conflict }: ConflictBranchItemProps) {
         className="conflict-branch-header" 
         onClick={() => setExpanded(!expanded)}
         role="button"
+        aria-expanded={expanded}
         tabIndex={0}
-        onKeyDown={(e) => e.key === "Enter" && setExpanded(!expanded)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            if (e.key === " ") e.preventDefault();
+            setExpanded(!expanded);
+          }
+        }}
       >
         <span className="expand-icon">{expanded ? "▼" : "▶"}</span>
         <span className="branch-icon conflict">⚠</span>

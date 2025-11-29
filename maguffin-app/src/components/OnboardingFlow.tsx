@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 interface OnboardingStep {
   id: string;
@@ -77,47 +77,41 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
   const isFirstStep = currentStep === 0;
   const isLastStep = currentStep === ONBOARDING_STEPS.length - 1;
 
-  const handleNext = () => {
+  const handleNext = useCallback(() => {
     if (isLastStep) {
       localStorage.setItem("maguffin_onboarding_complete", "true");
       onComplete();
     } else {
-      setCurrentStep(currentStep + 1);
+      setCurrentStep((prev) => prev + 1);
     }
-  };
+  }, [isLastStep, onComplete]);
 
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     if (!isFirstStep) {
-      setCurrentStep(currentStep - 1);
+      setCurrentStep((prev) => prev - 1);
     }
-  };
+  }, [isFirstStep]);
 
-  const handleSkip = () => {
+  const handleSkip = useCallback(() => {
     localStorage.setItem("maguffin_onboarding_complete", "true");
     onSkip();
-  };
+  }, [onSkip]);
 
   // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "Enter") {
-        if (isLastStep) {
-          localStorage.setItem("maguffin_onboarding_complete", "true");
-          onComplete();
-        } else {
-          setCurrentStep((prev) => prev + 1);
-        }
+        handleNext();
       } else if (e.key === "ArrowLeft" && !isFirstStep) {
-        setCurrentStep((prev) => prev - 1);
+        handlePrevious();
       } else if (e.key === "Escape") {
-        localStorage.setItem("maguffin_onboarding_complete", "true");
-        onSkip();
+        handleSkip();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isFirstStep, isLastStep, onComplete, onSkip]);
+  }, [isFirstStep, handleNext, handlePrevious, handleSkip]);
 
   return (
     <div className="onboarding-overlay">

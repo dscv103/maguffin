@@ -772,7 +772,7 @@ pub async fn reconcile_stacks(state: State<'_, AppState>) -> Result<ReconcileRep
     // Run entire operation in spawn_blocking since StackService contains non-Send types
     tokio::task::spawn_blocking(move || {
         let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
-        let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
 
         // Use block_on for the async method since we're in a blocking context
         let rt = tokio::runtime::Handle::current();
