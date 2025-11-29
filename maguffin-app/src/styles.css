@@ -2130,3 +2130,111 @@ body {
   border-color: var(--accent-primary);
   color: white;
 }
+
+/* ============================================
+   Stacks View Header and Actions
+   ============================================ */
+
+.stacks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.stacks-header h1 {
+  margin: 0;
+}
+
+.stacks-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.reconcile-btn,
+.refresh-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.reconcile-btn:hover:not(:disabled),
+.refresh-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+}
+
+.reconcile-btn:disabled,
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Reconcile Report */
+.reconcile-report {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-warning);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.reconcile-report h3 {
+  margin: 0 0 16px 0;
+  color: var(--accent-warning);
+}
+
+.reconcile-report h4 {
+  margin: 16px 0 8px 0;
+  font-size: 0.95rem;
+}
+
+.reconcile-report p {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.orphaned-branches ul,
+.reconcile-warnings ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.orphaned-branches li,
+.reconcile-warnings li {
+  padding: 6px 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.orphaned-branches code,
+.reconcile-warnings code {
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.reconcile-report .dismiss-btn {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.reconcile-report .dismiss-btn:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}

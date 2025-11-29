@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { Stack, Repository, RestackResult } from "../types";
+import type { Stack, Repository, RestackResult, ReconcileReport } from "../types";
 
 export function useStacks(repository: Repository | null) {
   const [stacks, setStacks] = useState<Stack[]>([]);
@@ -92,6 +92,18 @@ export function useStacks(repository: Repository | null) {
     }
   }, [fetchStacks]);
 
+  const reconcileStacks = useCallback(async (): Promise<ReconcileReport | null> => {
+    try {
+      setError(null);
+      const report = await invoke<ReconcileReport>("reconcile_stacks");
+      await fetchStacks(); // Refresh to get updated stacks
+      return report;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      return null;
+    }
+  }, [fetchStacks]);
+
   // Fetch stacks when repository changes
   useEffect(() => {
     if (repository) {
@@ -112,5 +124,6 @@ export function useStacks(repository: Repository | null) {
     createStackBranch,
     createStackPR,
     restackStack,
+    reconcileStacks,
   };
 }

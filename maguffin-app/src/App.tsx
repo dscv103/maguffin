@@ -1,14 +1,14 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback, ConflictResolutionDialog, OnboardingFlow, useOnboarding } from "./components";
 import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
-import type { PullRequest, Stack, RestackResult } from "./types";
+import type { PullRequest, Stack, RestackResult, ReconcileReport } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
 
 function App() {
   const { authState } = useAuth();
   const { repository, recentRepositories, loading: repoLoading, error: repoError, openRepository, removeRecentRepository, clearRepository, clearError: clearRepoError } = useRepository();
-  const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
+  const { stacks, loading: stacksLoading, error: stacksError, restackStack, reconcileStacks, refresh: refreshStacks } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
   const { theme, setTheme, toggleTheme } = useTheme();
   const { status: syncStatus, config: syncConfig, syncNow, loading: syncLoading, startSync, updateConfig, error: syncError, clearError: clearSyncError } = useSync();
@@ -18,6 +18,8 @@ function App() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [restackResult, setRestackResult] = useState<RestackResult | null>(null);
   const [currentRestackStackId, setCurrentRestackStackId] = useState<string | null>(null);
+  const [reconcileReport, setReconcileReport] = useState<ReconcileReport | null>(null);
+  const [reconciling, setReconciling] = useState(false);
 
   const isAuthenticated = authState.type === "authenticated";
   
@@ -118,6 +120,16 @@ function App() {
     setCurrentRestackStackId(null);
   };
 
+  const handleReconcile = async () => {
+    setReconciling(true);
+    setReconcileReport(null);
+    const report = await reconcileStacks();
+    setReconciling(false);
+    if (report && (report.orphaned.length > 0 || report.warnings.length > 0)) {
+      setReconcileReport(report);
+    }
+  };
+
   const handlePRActionComplete = () => {
     // Refresh the PR list after an action is completed
     refreshPRs();
@@ -201,7 +213,63 @@ function App() {
             {currentView === "stacks" && (
               <ErrorBoundary fallback={<ViewErrorFallback message="Failed to load stacks view" />}>
                 <div className="stacks-view">
-                  <h1>Stacks</h1>
+                  <div className="stacks-header">
+                    <h1>Stacks</h1>
+                    <div className="stacks-actions">
+                      <button 
+                        className="reconcile-btn" 
+                        onClick={handleReconcile}
+                        disabled={reconciling || stacks.length === 0}
+                      >
+                        {reconciling ? "Checking..." : "🔄 Reconcile"}
+                      </button>
+                      <button 
+                        className="refresh-btn" 
+                        onClick={() => refreshStacks()}
+                        disabled={stacksLoading}
+                      >
+                        ↻ Refresh
+                      </button>
+                    </div>
+                  </div>
+
+                  {reconcileReport && (
+                    <div className="reconcile-report">
+                      <h3>Reconciliation Report</h3>
+                      {reconcileReport.orphaned.length > 0 && (
+                        <div className="orphaned-branches">
+                          <h4>⚠️ Orphaned Branches</h4>
+                          <p>These branches were deleted externally:</p>
+                          <ul>
+                            {reconcileReport.orphaned.map((branch) => (
+                              <li key={branch}><code>{branch}</code></li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {reconcileReport.warnings.length > 0 && (
+                        <div className="reconcile-warnings">
+                          <h4>⚠️ Warnings</h4>
+                          <ul>
+                            {reconcileReport.warnings.map((warning, idx) => (
+                              <li key={idx}>
+                                <code>{warning.branch}</code>: {
+                                  warning.warning === "parent_not_ancestor" ? "Parent is not an ancestor (branch was rebased externally)" :
+                                  warning.warning === "externally_modified" ? "Branch was modified externally" :
+                                  warning.warning === "parent_deleted" ? "Parent branch was deleted" :
+                                  warning.warning
+                                }
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <button className="dismiss-btn" onClick={() => setReconcileReport(null)}>
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
                   {stacksLoading ? (
                     <div className="loading">
                       <div className="spinner" />
