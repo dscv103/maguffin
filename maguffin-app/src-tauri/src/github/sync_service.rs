@@ -488,6 +488,7 @@ impl SyncService {
 mod tests {
     use super::*;
     use crate::domain::pr::{Author, Mergeable, PrState};
+    use chrono::DateTime;
 
     fn make_pr(number: i64, title: &str, updated_at: DateTime<Utc>) -> PullRequest {
         PullRequest {

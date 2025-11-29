@@ -261,65 +261,111 @@ impl StackService {
     pub async fn reconcile(&self) -> Result<ReconcileReport> {
         let mut report = ReconcileReport::new();
 
-        let mut metadata = self.metadata.write().await;
-        let git = self.git.lock().expect("git lock poisoned");
+        // Collect updates from git in a synchronous block to avoid holding lock across await
+        let updates: Vec<(String, BranchStatus, Option<String>, Option<Warning>)>;
+        let orphans: Vec<String>;
+        {
+            let metadata = self.metadata.read().await;
+            let git = self.git.lock().expect("git lock poisoned");
 
-        for stack in &mut metadata.stacks {
-            for branch in &mut stack.branches {
-                // Check if branch exists
-                match git.branch_exists(&branch.name) {
-                    Ok(true) => {
-                        // Check if parent is still ancestor
-                        match git.is_ancestor(&branch.parent, &branch.name) {
-                            Ok(true) => {
-                                // Check if branch needs rebase
-                                if git
-                                    .needs_rebase(&branch.name, &branch.parent)
-                                    .unwrap_or(false)
-                                {
-                                    branch.status = BranchStatus::NeedsRebase;
-                                } else {
-                                    branch.status = BranchStatus::UpToDate;
-                                }
-                            }
-                            Ok(false) => {
-                                report.add_warning(branch.name.clone(), Warning::ParentNotAncestor);
-                                branch.status = BranchStatus::NeedsRebase;
-                            }
-                            Err(_) => {
-                                // Parent might not exist
-                                if !git.branch_exists(&branch.parent).unwrap_or(false) {
-                                    report.add_warning(branch.name.clone(), Warning::ParentDeleted);
-                                }
-                            }
-                        }
+            let mut collected_updates = Vec::new();
+            let mut collected_orphans = Vec::new();
 
-                        // Update head SHA
-                        if let Ok(sha) = git.get_head_sha(&branch.name) {
-                            if branch.head_sha.as_ref() != Some(&sha) {
-                                if branch.head_sha.is_some() {
-                                    report.add_warning(
-                                        branch.name.clone(),
-                                        Warning::ExternallyModified,
-                                    );
+            for stack in &metadata.stacks {
+                for branch in &stack.branches {
+                    // Check if branch exists
+                    match git.branch_exists(&branch.name) {
+                        Ok(true) => {
+                            let mut status = BranchStatus::Unknown;
+                            let mut warning = None;
+                            let mut new_sha = None;
+
+                            // Check if parent is still ancestor
+                            match git.is_ancestor(&branch.parent, &branch.name) {
+                                Ok(true) => {
+                                    // Check if branch needs rebase
+                                    if git
+                                        .needs_rebase(&branch.name, &branch.parent)
+                                        .unwrap_or(false)
+                                    {
+                                        status = BranchStatus::NeedsRebase;
+                                    } else {
+                                        status = BranchStatus::UpToDate;
+                                    }
                                 }
-                                branch.head_sha = Some(sha);
+                                Ok(false) => {
+                                    warning = Some(Warning::ParentNotAncestor);
+                                    status = BranchStatus::NeedsRebase;
+                                }
+                                Err(_) => {
+                                    // Parent might not exist
+                                    if !git.branch_exists(&branch.parent).unwrap_or(false) {
+                                        warning = Some(Warning::ParentDeleted);
+                                    }
+                                }
                             }
+
+                            // Update head SHA
+                            if let Ok(sha) = git.get_head_sha(&branch.name) {
+                                if branch.head_sha.as_ref() != Some(&sha) {
+                                    if branch.head_sha.is_some() {
+                                        warning = Some(Warning::ExternallyModified);
+                                    }
+                                    new_sha = Some(sha);
+                                }
+                            }
+
+                            collected_updates.push((branch.name.clone(), status, new_sha, warning));
                         }
-                    }
-                    Ok(false) => {
-                        branch.status = BranchStatus::Orphaned;
-                        report.add_orphan(branch.name.clone());
-                    }
-                    Err(_) => {
-                        branch.status = BranchStatus::Unknown;
+                        Ok(false) => {
+                            collected_updates.push((
+                                branch.name.clone(),
+                                BranchStatus::Orphaned,
+                                None,
+                                None,
+                            ));
+                            collected_orphans.push(branch.name.clone());
+                        }
+                        Err(_) => {
+                            collected_updates.push((
+                                branch.name.clone(),
+                                BranchStatus::Unknown,
+                                None,
+                                None,
+                            ));
+                        }
                     }
                 }
             }
-        }
 
-        drop(git);
-        drop(metadata);
+            updates = collected_updates;
+            orphans = collected_orphans;
+        }
+        // git lock is dropped here
+
+        // Now apply updates with write lock (no git lock held)
+        {
+            let mut metadata = self.metadata.write().await;
+            for (branch_name, status, new_sha, warning) in updates {
+                if let Some(warning) = warning {
+                    report.add_warning(branch_name.clone(), warning);
+                }
+
+                for stack in &mut metadata.stacks {
+                    if let Some(branch) = stack.find_branch_mut(&branch_name) {
+                        branch.status = status.clone();
+                        if let Some(sha) = new_sha.clone() {
+                            branch.head_sha = Some(sha);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            for orphan in orphans {
+                report.add_orphan(orphan);
+            }
+        }
 
         self.save_metadata().await?;
 
