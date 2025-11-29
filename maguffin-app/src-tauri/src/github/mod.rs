@@ -11,7 +11,7 @@ pub mod sync_service;
 
 use crate::domain::sync::RateLimitInfo;
 use crate::error::{GitHubError, Result};
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{TimeZone, Utc};
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::RwLock;
@@ -40,15 +40,17 @@ pub struct RateLimitState {
 impl RateLimitState {
     /// Update rate limit info from response headers.
     pub fn update_from_headers(&mut self, remaining: u32, limit: u32, reset_timestamp: i64) {
-        let resets_at = Utc.timestamp_opt(reset_timestamp, 0).single()
+        let resets_at = Utc
+            .timestamp_opt(reset_timestamp, 0)
+            .single()
             .unwrap_or_else(Utc::now);
-        
+
         self.info = Some(RateLimitInfo {
             remaining,
             limit,
             resets_at,
         });
-        
+
         // Reset consecutive hits if we have remaining quota
         if remaining > 0 {
             self.consecutive_hits = 0;
@@ -58,11 +60,11 @@ impl RateLimitState {
     /// Mark that we hit a rate limit.
     pub fn mark_rate_limited(&mut self, reset_timestamp: Option<i64>) {
         self.consecutive_hits += 1;
-        
+
         let resets_at = reset_timestamp
             .and_then(|ts| Utc.timestamp_opt(ts, 0).single())
             .unwrap_or_else(|| Utc::now() + chrono::Duration::minutes(15));
-        
+
         self.info = Some(RateLimitInfo {
             remaining: 0,
             limit: self.info.as_ref().map(|i| i.limit).unwrap_or(5000),
@@ -173,45 +175,45 @@ impl GitHubClient {
     /// Parse rate limit headers from response.
     fn parse_rate_limit_headers(response: &reqwest::Response) -> Option<(u32, u32, i64)> {
         let headers = response.headers();
-        
+
         let remaining = headers
             .get("x-ratelimit-remaining")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse::<u32>().ok())?;
-        
+
         let limit = headers
             .get("x-ratelimit-limit")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse::<u32>().ok())
             .unwrap_or(5000);
-        
+
         let reset = headers
             .get("x-ratelimit-reset")
             .and_then(|v| v.to_str().ok())
             .and_then(|v| v.parse::<i64>().ok())
             .unwrap_or_else(|| Utc::now().timestamp() + 3600);
-        
+
         Some((remaining, limit, reset))
     }
 
     /// Wait for rate limit if needed.
     async fn wait_for_rate_limit(&self) -> Result<()> {
         let state = self.rate_limit.read().await;
-        
+
         if let Some(wait_duration) = state.wait_duration() {
             drop(state); // Release read lock before sleeping
-            
+
             let wait_secs = wait_duration.as_secs();
             tracing::warn!(
                 "Rate limited by GitHub API. Waiting {} seconds before retry.",
                 wait_secs
             );
-            
+
             // Cap waiting time at 5 minutes for better UX
             let capped_duration = Duration::from_secs(wait_secs.min(300));
             sleep(capped_duration).await;
         }
-        
+
         Ok(())
     }
 
@@ -221,11 +223,11 @@ impl GitHubClient {
         T: serde::de::DeserializeOwned,
     {
         let mut retries = 0;
-        
+
         loop {
             // Check and wait for rate limit before making request
             self.wait_for_rate_limit().await?;
-            
+
             match self.execute_query::<T>(query, variables.clone()).await {
                 Ok(result) => return Ok(result),
                 Err(e) => {
@@ -234,25 +236,25 @@ impl GitHubClient {
                         &e,
                         crate::error::AppError::GitHub(GitHubError::RateLimited { .. })
                     );
-                    
+
                     if is_rate_limit && retries < MAX_RETRIES {
                         retries += 1;
-                        
+
                         let state = self.rate_limit.read().await;
                         let backoff = state.backoff_duration();
                         drop(state);
-                        
+
                         tracing::warn!(
                             "Rate limit hit. Retry {}/{} after {:?}",
                             retries,
                             MAX_RETRIES,
                             backoff
                         );
-                        
+
                         sleep(backoff).await;
                         continue;
                     }
-                    
+
                     return Err(e);
                 }
             }
@@ -289,23 +291,24 @@ impl GitHubClient {
         }
 
         // Handle rate limit response (403 or 429)
-        if response.status() == reqwest::StatusCode::FORBIDDEN 
-            || response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS 
+        if response.status() == reqwest::StatusCode::FORBIDDEN
+            || response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS
         {
             let reset_timestamp = response
                 .headers()
                 .get("x-ratelimit-reset")
                 .and_then(|v| v.to_str().ok())
                 .and_then(|v| v.parse::<i64>().ok());
-            
+
             let mut state = self.rate_limit.write().await;
             state.mark_rate_limited(reset_timestamp);
-            
-            let reset_at = state.info
+
+            let reset_at = state
+                .info
                 .as_ref()
                 .map(|i| i.resets_at.to_rfc3339())
                 .unwrap_or_else(|| "unknown".to_string());
-            
+
             return Err(GitHubError::RateLimited { reset_at }.into());
         }
 
@@ -372,9 +375,9 @@ mod tests {
     fn test_rate_limit_state_update_from_headers() {
         let mut state = RateLimitState::default();
         let reset_time = Utc::now().timestamp() + 3600;
-        
+
         state.update_from_headers(100, 5000, reset_time);
-        
+
         assert!(state.info.is_some());
         let info = state.info.unwrap();
         assert_eq!(info.remaining, 100);
@@ -385,13 +388,13 @@ mod tests {
     #[test]
     fn test_rate_limit_state_mark_rate_limited() {
         let mut state = RateLimitState::default();
-        
+
         state.mark_rate_limited(None);
-        
+
         assert!(state.info.is_some());
         assert_eq!(state.consecutive_hits, 1);
         assert_eq!(state.info.as_ref().unwrap().remaining, 0);
-        
+
         state.mark_rate_limited(None);
         assert_eq!(state.consecutive_hits, 2);
     }
@@ -399,11 +402,11 @@ mod tests {
     #[test]
     fn test_rate_limit_state_backoff_duration() {
         let mut state = RateLimitState::default();
-        
+
         // After first rate limit hit: consecutive_hits = 1, 60 * 2^1 = 120 seconds
         state.mark_rate_limited(None);
         assert_eq!(state.backoff_duration().as_secs(), 120);
-        
+
         // After second hit: consecutive_hits = 2, 60 * 2^2 = 240 seconds
         state.mark_rate_limited(None);
         assert_eq!(state.backoff_duration().as_secs(), 240);
@@ -412,14 +415,14 @@ mod tests {
     #[test]
     fn test_rate_limit_state_should_wait() {
         let mut state = RateLimitState::default();
-        
+
         // No info yet - should not wait
         assert!(!state.should_wait());
-        
+
         // Mark rate limited with future reset time
         let reset_time = Utc::now().timestamp() + 3600;
         state.mark_rate_limited(Some(reset_time));
-        
+
         // Now should wait
         assert!(state.should_wait());
     }
@@ -427,15 +430,15 @@ mod tests {
     #[test]
     fn test_rate_limit_state_wait_duration() {
         let mut state = RateLimitState::default();
-        
+
         // No info - no wait
         assert!(state.wait_duration().is_none());
-        
+
         // Has remaining quota - no wait
         let reset_time = Utc::now().timestamp() + 3600;
         state.update_from_headers(100, 5000, reset_time);
         assert!(state.wait_duration().is_none());
-        
+
         // Rate limited - should wait
         state.mark_rate_limited(Some(reset_time));
         let wait = state.wait_duration();
