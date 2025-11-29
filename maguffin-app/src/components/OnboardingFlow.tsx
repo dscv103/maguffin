@@ -101,17 +101,23 @@ export function OnboardingFlow({ onComplete, onSkip }: OnboardingFlowProps) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight" || e.key === "Enter") {
-        handleNext();
+        if (isLastStep) {
+          localStorage.setItem("maguffin_onboarding_complete", "true");
+          onComplete();
+        } else {
+          setCurrentStep((prev) => prev + 1);
+        }
       } else if (e.key === "ArrowLeft" && !isFirstStep) {
-        handlePrevious();
+        setCurrentStep((prev) => prev - 1);
       } else if (e.key === "Escape") {
-        handleSkip();
+        localStorage.setItem("maguffin_onboarding_complete", "true");
+        onSkip();
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [currentStep, isFirstStep, isLastStep]);
+  }, [isFirstStep, isLastStep, onComplete, onSkip]);
 
   return (
     <div className="onboarding-overlay">

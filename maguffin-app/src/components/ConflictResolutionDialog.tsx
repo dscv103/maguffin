@@ -101,10 +101,9 @@ export function ConflictResolutionDialog({
                 <ol>
                   <li>Open your terminal in the repository directory</li>
                   <li>Run: <code>git checkout {result.conflicts[0]?.branch}</code></li>
-                  <li>Run: <code>git rebase {result.conflicts[0]?.branch ? `origin/${result.conflicts[0].branch}~1` : 'main'}</code></li>
-                  <li>Resolve the conflicts in the listed files</li>
-                  <li>Run: <code>git add .</code></li>
-                  <li>Run: <code>git rebase --continue</code></li>
+                  <li>Resolve the conflicts manually using your preferred merge tool</li>
+                  <li>Stage the resolved files: <code>git add .</code></li>
+                  <li>Complete any pending rebase with: <code>git rebase --continue</code></li>
                   <li>Once resolved, click "Retry Restack" below</li>
                 </ol>
               </div>

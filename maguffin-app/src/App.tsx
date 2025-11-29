@@ -1,9 +1,15 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback, ConflictResolutionDialog, OnboardingFlow, useOnboarding } from "./components";
 import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
-import type { PullRequest, Stack, RestackResult, ReconcileReport } from "./types";
+import type { PullRequest, Stack, RestackResult, ReconcileReport, WarningType } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
+
+const WARNING_MESSAGES: Record<WarningType, string> = {
+  parent_not_ancestor: "Parent is not an ancestor (branch was rebased externally)",
+  externally_modified: "Branch was modified externally",
+  parent_deleted: "Parent branch was deleted",
+};
 
 function App() {
   const { authState } = useAuth();
@@ -253,12 +259,7 @@ function App() {
                           <ul>
                             {reconcileReport.warnings.map((warning, idx) => (
                               <li key={idx}>
-                                <code>{warning.branch}</code>: {
-                                  warning.warning === "parent_not_ancestor" ? "Parent is not an ancestor (branch was rebased externally)" :
-                                  warning.warning === "externally_modified" ? "Branch was modified externally" :
-                                  warning.warning === "parent_deleted" ? "Parent branch was deleted" :
-                                  warning.warning
-                                }
+                                <code>{warning.branch}</code>: {WARNING_MESSAGES[warning.warning] || warning.warning}
                               </li>
                             ))}
                           </ul>

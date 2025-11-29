@@ -109,7 +109,7 @@ export function StackView({ stack, onBranchClick, onRestack, defaultExpanded = t
           onClick={() => setExpanded(!expanded)}
           role="button"
           tabIndex={0}
-          onKeyDown={(e) => e.key === "Enter" && setExpanded(!expanded)}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setExpanded(!expanded)}
         >
           <span className="root-icon">⬤</span>
           <span className="root-name">{stack.root}</span>
