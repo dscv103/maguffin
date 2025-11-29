@@ -398,7 +398,7 @@ mod tests {
             error: None,
             dry_run: false,
         };
-        
+
         // Serialize and check dry_run is included
         let json = serde_json::to_string(&result).unwrap();
         assert!(json.contains("\"dry_run\":false"));
@@ -407,14 +407,12 @@ mod tests {
     #[test]
     fn test_restack_preview_serialization() {
         let preview = RestackPreview {
-            will_rebase: vec![
-                RestackBranchPreview {
-                    branch: "feature-a".to_string(),
-                    onto: "main".to_string(),
-                    commits_to_replay: 3,
-                    has_pr: true,
-                },
-            ],
+            will_rebase: vec![RestackBranchPreview {
+                branch: "feature-a".to_string(),
+                onto: "main".to_string(),
+                commits_to_replay: 3,
+                has_pr: true,
+            }],
             up_to_date: vec!["feature-b".to_string()],
             total_commits: 3,
         };

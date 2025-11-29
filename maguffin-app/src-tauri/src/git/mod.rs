@@ -273,9 +273,16 @@ impl Git2Backend {
 
         // Count commits from merge base to branch head
         let mut count = 0;
-        let mut revwalk = self.repo.revwalk().map_err(|e| GitError::Branch(e.to_string()))?;
-        revwalk.push(branch_oid).map_err(|e| GitError::Branch(e.to_string()))?;
-        revwalk.hide(merge_base).map_err(|e| GitError::Branch(e.to_string()))?;
+        let mut revwalk = self
+            .repo
+            .revwalk()
+            .map_err(|e| GitError::Branch(e.to_string()))?;
+        revwalk
+            .push(branch_oid)
+            .map_err(|e| GitError::Branch(e.to_string()))?;
+        revwalk
+            .hide(merge_base)
+            .map_err(|e| GitError::Branch(e.to_string()))?;
 
         for _ in revwalk {
             count += 1;
