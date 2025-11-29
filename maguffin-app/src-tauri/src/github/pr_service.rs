@@ -13,8 +13,9 @@ use crate::github::queries::{
     ClosePullRequestVariables, CreatePullRequestVariables, GetPullRequestDetailsResponse,
     GetPullRequestDetailsVariables, GetRepositoryIdResponse, GetRepositoryIdVariables,
     GqlCheckContext, GqlPullRequestDetails, GqlPullRequestNode, ListPullRequestsResponse,
-    ListPullRequestsVariables, MergePullRequestVariables, CLOSE_PULL_REQUEST, CREATE_PULL_REQUEST,
-    GET_PULL_REQUEST_DETAILS, GET_REPOSITORY_ID, LIST_PULL_REQUESTS, MERGE_PULL_REQUEST,
+    ListPullRequestsVariables, MergePullRequestVariables, UpdatePullRequestVariables,
+    CLOSE_PULL_REQUEST, CREATE_PULL_REQUEST, GET_PULL_REQUEST_DETAILS, GET_REPOSITORY_ID,
+    LIST_PULL_REQUESTS, MERGE_PULL_REQUEST, UPDATE_PULL_REQUEST,
 };
 use crate::github::GitHubClient;
 use chrono::{DateTime, Utc};
@@ -178,6 +179,26 @@ impl PrService {
         Ok(state == "CLOSED")
     }
 
+    /// Update a pull request's base branch.
+    /// This is used after a parent PR merges to update child PR to target the new base.
+    pub async fn update_pr_base(&self, pr_id: String, new_base: String) -> Result<bool> {
+        let variables = UpdatePullRequestVariables {
+            pull_request_id: pr_id,
+            base_ref_name: Some(new_base.clone()),
+        };
+
+        let response: serde_json::Value = self
+            .client
+            .query(UPDATE_PULL_REQUEST, serde_json::to_value(variables)?)
+            .await?;
+
+        let base_ref = response["updatePullRequest"]["pullRequest"]["baseRefName"]
+            .as_str()
+            .unwrap_or("");
+
+        Ok(base_ref == new_base)
+    }
+
     /// Get the repository ID.
     async fn get_repository_id(&self) -> Result<String> {
         let variables = GetRepositoryIdVariables {
@@ -327,7 +348,7 @@ impl PrService {
                     .map(|nodes| {
                         nodes
                             .iter()
-                            .filter_map(|ctx| Self::convert_check_context(ctx))
+                            .filter_map(Self::convert_check_context)
                             .collect()
                     })
                     .unwrap_or_default();
@@ -498,13 +519,15 @@ impl PrService {
             }
             GqlCheckContext::StatusContext(status) => {
                 let typename = status.typename.as_deref();
-                
+
                 // Status contexts have context and state
                 if typename == Some("StatusContext") {
                     let name = status.context.clone()?;
-                    
+
                     let (status_val, conclusion) = match status.state.as_deref() {
-                        Some("SUCCESS") => (CheckRunStatus::Completed, Some(CheckConclusion::Success)),
+                        Some("SUCCESS") => {
+                            (CheckRunStatus::Completed, Some(CheckConclusion::Success))
+                        }
                         Some("FAILURE") | Some("ERROR") => {
                             (CheckRunStatus::Completed, Some(CheckConclusion::Failure))
                         }

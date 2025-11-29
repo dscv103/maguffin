@@ -157,6 +157,12 @@ impl serde::Serialize for AppError {
     }
 }
 
+impl From<String> for AppError {
+    fn from(s: String) -> Self {
+        AppError::Internal(s)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

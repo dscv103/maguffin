@@ -7,6 +7,7 @@ pub mod auth_service;
 pub mod pr_service;
 pub mod queries;
 pub mod stack_service;
+pub mod sync_service;
 
 use crate::error::{GitHubError, Result};
 use std::sync::Arc;
@@ -15,6 +16,7 @@ use tokio::sync::RwLock;
 pub use auth_service::AuthService;
 pub use pr_service::PrService;
 pub use stack_service::StackService;
+pub use sync_service::SyncService;
 
 /// GitHub GraphQL API client.
 pub struct GitHubClient {

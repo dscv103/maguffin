@@ -12,7 +12,7 @@ use crate::git::{Git2Backend, GitOperations};
 use crate::github::pr_service::PrService;
 use chrono::Utc;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::RwLock;
 
 /// Service for managing stacked branches and PRs.
@@ -20,8 +20,8 @@ pub struct StackService {
     /// Path to the repository
     repo_path: PathBuf,
 
-    /// Git backend for local operations
-    git: Arc<RwLock<Git2Backend>>,
+    /// Git backend for local operations (uses std::sync::Mutex as git2::Repository is not Send)
+    git: Arc<Mutex<Git2Backend>>,
 
     /// PR service for GitHub operations
     pr_service: Option<Arc<PrService>>,
@@ -44,7 +44,7 @@ impl StackService {
 
         Ok(Self {
             repo_path,
-            git: Arc::new(RwLock::new(git)),
+            git: Arc::new(Mutex::new(git)),
             pr_service: None,
             metadata: Arc::new(RwLock::new(metadata)),
         })
@@ -91,13 +91,13 @@ impl StackService {
     ) -> Result<StackBranch> {
         // Create the branch using git
         {
-            let git = self.git.read().await;
+            let git = self.git.lock().expect("git lock poisoned");
             git.create_branch(&branch_name, &parent_name)?;
         }
 
         // Get the head SHA
         let head_sha = {
-            let git = self.git.read().await;
+            let git = self.git.lock().expect("git lock poisoned");
             git.get_head_sha(&branch_name).ok()
         };
 
@@ -156,7 +156,7 @@ impl StackService {
         for branch in branches {
             // Check if branch needs restacking
             let needs_restack = {
-                let git = self.git.read().await;
+                let git = self.git.lock().expect("git lock poisoned");
                 git.needs_rebase(&branch.name, &branch.parent)
                     .unwrap_or(true)
             };
@@ -168,12 +168,28 @@ impl StackService {
 
             // Perform the rebase
             let rebase_result = {
-                let git = self.git.read().await;
+                let git = self.git.lock().expect("git lock poisoned");
                 git.rebase(&branch.name, &branch.parent)
             };
 
             match rebase_result {
                 Ok(_) => {
+                    // Force push after successful rebase
+                    let push_result = {
+                        let git = self.git.lock().expect("git lock poisoned");
+                        git.force_push(&branch.name, "origin")
+                    };
+
+                    match push_result {
+                        Ok(_) => {
+                            tracing::info!("Force pushed branch {} to origin", branch.name);
+                        }
+                        Err(e) => {
+                            tracing::warn!("Failed to force push {}: {}", branch.name, e);
+                            // Continue even if push fails - the rebase was successful locally
+                        }
+                    }
+
                     result.restacked.push(branch.name.clone());
 
                     // Update branch status in metadata
@@ -182,7 +198,12 @@ impl StackService {
                         if let Some(b) = s.find_branch_mut(&branch.name) {
                             b.status = BranchStatus::UpToDate;
                             // Update head SHA
-                            if let Ok(sha) = self.git.read().await.get_head_sha(&branch.name) {
+                            if let Ok(sha) = self
+                                .git
+                                .lock()
+                                .expect("git lock poisoned")
+                                .get_head_sha(&branch.name)
+                            {
                                 b.head_sha = Some(sha);
                             }
                         }
@@ -199,7 +220,7 @@ impl StackService {
                         result.status = RestackStatus::Conflicts;
 
                         // Abort the rebase
-                        let _ = self.git.read().await.abort_rebase();
+                        let _ = self.git.lock().expect("git lock poisoned").abort_rebase();
 
                         // Update branch status
                         let mut metadata = self.metadata.write().await;
@@ -240,65 +261,111 @@ impl StackService {
     pub async fn reconcile(&self) -> Result<ReconcileReport> {
         let mut report = ReconcileReport::new();
 
-        let mut metadata = self.metadata.write().await;
-        let git = self.git.read().await;
+        // Collect updates from git in a synchronous block to avoid holding lock across await
+        let updates: Vec<(String, BranchStatus, Option<String>, Option<Warning>)>;
+        let orphans: Vec<String>;
+        {
+            let metadata = self.metadata.read().await;
+            let git = self.git.lock().expect("git lock poisoned");
 
-        for stack in &mut metadata.stacks {
-            for branch in &mut stack.branches {
-                // Check if branch exists
-                match git.branch_exists(&branch.name) {
-                    Ok(true) => {
-                        // Check if parent is still ancestor
-                        match git.is_ancestor(&branch.parent, &branch.name) {
-                            Ok(true) => {
-                                // Check if branch needs rebase
-                                if git
-                                    .needs_rebase(&branch.name, &branch.parent)
-                                    .unwrap_or(false)
-                                {
-                                    branch.status = BranchStatus::NeedsRebase;
-                                } else {
-                                    branch.status = BranchStatus::UpToDate;
-                                }
-                            }
-                            Ok(false) => {
-                                report.add_warning(branch.name.clone(), Warning::ParentNotAncestor);
-                                branch.status = BranchStatus::NeedsRebase;
-                            }
-                            Err(_) => {
-                                // Parent might not exist
-                                if !git.branch_exists(&branch.parent).unwrap_or(false) {
-                                    report.add_warning(branch.name.clone(), Warning::ParentDeleted);
-                                }
-                            }
-                        }
+            let mut collected_updates = Vec::new();
+            let mut collected_orphans = Vec::new();
 
-                        // Update head SHA
-                        if let Ok(sha) = git.get_head_sha(&branch.name) {
-                            if branch.head_sha.as_ref() != Some(&sha) {
-                                if branch.head_sha.is_some() {
-                                    report.add_warning(
-                                        branch.name.clone(),
-                                        Warning::ExternallyModified,
-                                    );
+            for stack in &metadata.stacks {
+                for branch in &stack.branches {
+                    // Check if branch exists
+                    match git.branch_exists(&branch.name) {
+                        Ok(true) => {
+                            let mut status = BranchStatus::Unknown;
+                            let mut warning = None;
+                            let mut new_sha = None;
+
+                            // Check if parent is still ancestor
+                            match git.is_ancestor(&branch.parent, &branch.name) {
+                                Ok(true) => {
+                                    // Check if branch needs rebase
+                                    if git
+                                        .needs_rebase(&branch.name, &branch.parent)
+                                        .unwrap_or(false)
+                                    {
+                                        status = BranchStatus::NeedsRebase;
+                                    } else {
+                                        status = BranchStatus::UpToDate;
+                                    }
                                 }
-                                branch.head_sha = Some(sha);
+                                Ok(false) => {
+                                    warning = Some(Warning::ParentNotAncestor);
+                                    status = BranchStatus::NeedsRebase;
+                                }
+                                Err(_) => {
+                                    // Parent might not exist
+                                    if !git.branch_exists(&branch.parent).unwrap_or(false) {
+                                        warning = Some(Warning::ParentDeleted);
+                                    }
+                                }
                             }
+
+                            // Update head SHA
+                            if let Ok(sha) = git.get_head_sha(&branch.name) {
+                                if branch.head_sha.as_ref() != Some(&sha) {
+                                    if branch.head_sha.is_some() {
+                                        warning = Some(Warning::ExternallyModified);
+                                    }
+                                    new_sha = Some(sha);
+                                }
+                            }
+
+                            collected_updates.push((branch.name.clone(), status, new_sha, warning));
                         }
-                    }
-                    Ok(false) => {
-                        branch.status = BranchStatus::Orphaned;
-                        report.add_orphan(branch.name.clone());
-                    }
-                    Err(_) => {
-                        branch.status = BranchStatus::Unknown;
+                        Ok(false) => {
+                            collected_updates.push((
+                                branch.name.clone(),
+                                BranchStatus::Orphaned,
+                                None,
+                                None,
+                            ));
+                            collected_orphans.push(branch.name.clone());
+                        }
+                        Err(_) => {
+                            collected_updates.push((
+                                branch.name.clone(),
+                                BranchStatus::Unknown,
+                                None,
+                                None,
+                            ));
+                        }
                     }
                 }
             }
-        }
 
-        drop(git);
-        drop(metadata);
+            updates = collected_updates;
+            orphans = collected_orphans;
+        }
+        // git lock is dropped here
+
+        // Now apply updates with write lock (no git lock held)
+        {
+            let mut metadata = self.metadata.write().await;
+            for (branch_name, status, new_sha, warning) in updates {
+                if let Some(warning) = warning {
+                    report.add_warning(branch_name.clone(), warning);
+                }
+
+                for stack in &mut metadata.stacks {
+                    if let Some(branch) = stack.find_branch_mut(&branch_name) {
+                        branch.status = status;
+                        if let Some(sha) = new_sha {
+                            branch.head_sha = Some(sha);
+                        }
+                        break;
+                    }
+                }
+            }
+
+            for orphan in orphans {
+                report.add_orphan(orphan);
+            }
+        }
 
         self.save_metadata().await?;
 
@@ -307,24 +374,55 @@ impl StackService {
 
     /// Update PR base branch after parent is merged.
     pub async fn update_pr_base(&self, branch_name: &str, new_base: &str) -> Result<()> {
-        let _pr_service = self
+        let pr_service = self
             .pr_service
             .as_ref()
             .ok_or_else(|| GitError::Branch("PR service not configured".to_string()))?;
 
-        // Find the branch and its PR number
+        // Find the branch and its PR ID
         let metadata = self.metadata.read().await;
-        let pr_number = metadata
+        let branch_info = metadata
             .stacks
             .iter()
             .flat_map(|s| s.branches.iter())
             .find(|b| b.name == branch_name)
-            .and_then(|b| b.pr_number);
+            .cloned();
+        drop(metadata);
 
-        if let Some(_pr_number) = pr_number {
-            // In a full implementation, we would update the PR base using the GitHub API
-            // This requires the updatePullRequest mutation
-            tracing::info!("Would update PR for {} to target {}", branch_name, new_base);
+        if let Some(branch) = branch_info {
+            if let Some(pr_number) = branch.pr_number {
+                // Need to get the PR ID from the PR number
+                match pr_service.get_pr_details(pr_number).await {
+                    Ok(details) => {
+                        match pr_service
+                            .update_pr_base(details.pr.id, new_base.to_string())
+                            .await
+                        {
+                            Ok(true) => {
+                                tracing::info!(
+                                    "Updated PR #{} for {} to target {}",
+                                    pr_number,
+                                    branch_name,
+                                    new_base
+                                );
+                            }
+                            Ok(false) => {
+                                tracing::warn!(
+                                    "Failed to update PR #{} base to {}",
+                                    pr_number,
+                                    new_base
+                                );
+                            }
+                            Err(e) => {
+                                tracing::error!("Error updating PR #{} base: {}", pr_number, e);
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to get PR details for #{}: {}", pr_number, e);
+                    }
+                }
+            }
         }
 
         Ok(())

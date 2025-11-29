@@ -89,12 +89,7 @@ impl Cache {
     }
 
     /// Save a recent repository.
-    pub fn save_recent_repository(
-        &self,
-        path: &str,
-        owner: &str,
-        name: &str,
-    ) -> Result<()> {
+    pub fn save_recent_repository(&self, path: &str, owner: &str, name: &str) -> Result<()> {
         let conn = self
             .conn
             .lock()

@@ -4,13 +4,15 @@
 //! frontend UI to the Rust backend.
 
 use crate::cache::{Cache, RecentRepository};
+use crate::config::SyncConfig;
 use crate::domain::pr::PullRequestDetails;
 use crate::domain::repo::GitHubRemote;
 use crate::domain::stack::{RestackResult, Stack};
+use crate::domain::sync::SyncStatus;
 use crate::domain::{AuthState, PullRequest, Repository, SyncState};
 use crate::error::AppError;
 use crate::git::{Git2Backend, GitOperations};
-use crate::github::{AuthService, GitHubClient, PrService, StackService};
+use crate::github::{AuthService, GitHubClient, PrService, StackService, SyncService};
 use std::path::PathBuf;
 use std::sync::Arc;
 use tauri::State;
@@ -23,6 +25,7 @@ use tokio::sync::RwLock;
 /// - GitHubClient for API calls
 /// - Current repository context
 /// - Cache for persistent storage
+/// - SyncService for background synchronization
 pub struct AppState {
     /// Authentication service
     auth_service: AuthService,
@@ -35,6 +38,9 @@ pub struct AppState {
 
     /// Local cache for recent repositories and settings
     cache: Arc<Cache>,
+
+    /// Background sync service
+    sync_service: Arc<SyncService>,
 }
 
 /// Context for the currently opened repository.
@@ -69,6 +75,7 @@ impl AppState {
                 tracing::warn!("Failed to create GitHub client, using default: {}", e);
                 GitHubClient::default()
             });
+        let github_client = Arc::new(github_client);
 
         let auth_service = AuthService::new().unwrap_or_else(|e| {
             tracing::warn!("Failed to create AuthService, using default: {}", e);
@@ -78,11 +85,15 @@ impl AppState {
         // Create cache in the user's data directory
         let cache = Self::create_cache();
 
+        // Create sync service with default config
+        let sync_service = SyncService::new(github_client.clone(), SyncConfig::default());
+
         Self {
             auth_service,
-            github_client: Arc::new(github_client),
+            github_client,
             current_repo: Arc::new(RwLock::new(None)),
             cache: Arc::new(cache),
+            sync_service: Arc::new(sync_service),
         }
     }
 
@@ -201,13 +212,18 @@ pub async fn open_repository(
     };
     *state.current_repo.write().await = Some(context);
 
+    // Update sync service with new repository context
+    state
+        .sync_service
+        .set_repository(github_remote.owner.clone(), github_remote.name.clone())
+        .await;
+
     // Save to recent repositories
     let path_str = path.to_string_lossy().to_string();
-    let _ = state.cache.save_recent_repository(
-        &path_str,
-        &github_remote.owner,
-        &github_remote.name,
-    );
+    let _ =
+        state
+            .cache
+            .save_recent_repository(&path_str, &github_remote.owner, &github_remote.name);
 
     Ok(Repository {
         path,
@@ -452,10 +468,7 @@ pub async fn merge_pull_request(
 
 /// Close a pull request without merging.
 #[tauri::command]
-pub async fn close_pull_request(
-    state: State<'_, AppState>,
-    pr_id: String,
-) -> Result<bool, String> {
+pub async fn close_pull_request(state: State<'_, AppState>, pr_id: String) -> Result<bool, String> {
     let repo = state
         .current_repo
         .read()
@@ -470,6 +483,32 @@ pub async fn close_pull_request(
     );
 
     pr_service.close_pr(pr_id).await.map_err(|e| e.to_string())
+}
+
+/// Update a pull request's base branch.
+#[tauri::command]
+pub async fn update_pull_request_base(
+    state: State<'_, AppState>,
+    pr_id: String,
+    new_base: String,
+) -> Result<bool, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let pr_service = PrService::new(
+        state.github_client.clone(),
+        repo.owner.clone(),
+        repo.name.clone(),
+    );
+
+    pr_service
+        .update_pr_base(pr_id, new_base)
+        .await
+        .map_err(|e| e.to_string())
 }
 
 /// List all stacks in the current repository.
@@ -615,12 +654,16 @@ pub async fn create_stack_pr(
         .ok_or("No repository opened")?;
 
     let repo_path = repo.path.clone();
+    let owner = repo.owner.clone();
+    let name = repo.name.clone();
 
-    // First, find the parent branch from the stack metadata
-    let parent_branch = tokio::task::spawn_blocking({
+    // First, get stack info and parent branch from the stack metadata
+    let (parent_branch, stack_context) = tokio::task::spawn_blocking({
         let repo_path = repo_path.clone();
         let stack_id = stack_id.clone();
         let branch_name = branch_name.clone();
+        let owner = owner.clone();
+        let name = name.clone();
         move || {
             let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
             let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
@@ -637,11 +680,51 @@ pub async fn create_stack_pr(
                 .find(|b| b.name == branch_name)
                 .ok_or("Branch not found in stack")?;
 
-            Ok::<String, String>(branch.parent.clone())
+            // Build stack context for PR description
+            let mut stack_context_parts = Vec::new();
+            stack_context_parts.push("## Stack Context\n".to_string());
+            stack_context_parts.push(format!(
+                "This PR is part of a stack rooted at `{}`.\n",
+                stack.root
+            ));
+            stack_context_parts.push("\n**Stack branches:**\n".to_string());
+
+            // Get ordered branches
+            let ordered_branches = stack.topological_order();
+            for stack_branch in &ordered_branches {
+                let prefix = if stack_branch.name == branch_name {
+                    "👉"
+                } else {
+                    "  "
+                };
+                let pr_link = if let Some(pr_num) = stack_branch.pr_number {
+                    format!(
+                        " ([#{}](https://github.com/{}/{}/pull/{}))",
+                        pr_num, owner, name, pr_num
+                    )
+                } else {
+                    String::new()
+                };
+                stack_context_parts.push(format!(
+                    "{} `{}` → `{}`{}\n",
+                    prefix, stack_branch.name, stack_branch.parent, pr_link
+                ));
+            }
+
+            let stack_context = stack_context_parts.join("");
+            Ok::<(String, String), String>((branch.parent.clone(), stack_context))
         }
     })
     .await
     .map_err(|e| format!("Task failed: {:?}", e))??;
+
+    // Append stack context to body
+    let full_body = match body {
+        Some(user_body) if !user_body.is_empty() => {
+            Some(format!("{}\n\n---\n\n{}", user_body, stack_context))
+        }
+        _ => Some(stack_context),
+    };
 
     // Create the PR with the parent branch as base
     let pr_service = PrService::new(
@@ -651,7 +734,7 @@ pub async fn create_stack_pr(
     );
 
     let pr_number = pr_service
-        .create_pr(title, body, branch_name.clone(), parent_branch, draft)
+        .create_pr(title, full_body, branch_name.clone(), parent_branch, draft)
         .await
         .map_err(|e| e.to_string())?;
 
@@ -673,6 +756,58 @@ pub async fn create_stack_pr(
     Ok(pr_number)
 }
 
+// ============================================================================
+// Sync Commands
+// ============================================================================
+
+/// Get the current sync status.
+#[tauri::command]
+pub async fn get_sync_status(state: State<'_, AppState>) -> Result<SyncStatus, String> {
+    Ok(state.sync_service.status().await)
+}
+
+/// Start background sync.
+#[tauri::command]
+pub async fn start_sync(state: State<'_, AppState>) -> Result<(), String> {
+    state.sync_service.start().await;
+    Ok(())
+}
+
+/// Stop background sync.
+#[tauri::command]
+pub async fn stop_sync(state: State<'_, AppState>) -> Result<(), String> {
+    state.sync_service.stop().await.map_err(|e| e.to_string())
+}
+
+/// Trigger an immediate sync.
+#[tauri::command]
+pub async fn sync_now(state: State<'_, AppState>) -> Result<(), String> {
+    state
+        .sync_service
+        .sync_now()
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// Update sync configuration.
+#[tauri::command]
+pub async fn update_sync_config(
+    state: State<'_, AppState>,
+    interval_secs: u64,
+    enabled: bool,
+) -> Result<(), String> {
+    let config = SyncConfig {
+        interval_secs,
+        enabled,
+        sync_on_startup: true,
+    };
+    state
+        .sync_service
+        .update_config(config)
+        .await
+        .map_err(|e| e.to_string())
+}
+
 /// Generate all command handlers for registration.
 pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -690,11 +825,17 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         create_pull_request,
         merge_pull_request,
         close_pull_request,
+        update_pull_request_base,
         list_stacks,
         create_stack,
         create_stack_branch,
         create_stack_pr,
         restack,
+        get_sync_status,
+        start_sync,
+        stop_sync,
+        sync_now,
+        update_sync_config,
     ]
 }
 

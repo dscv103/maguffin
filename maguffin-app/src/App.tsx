@@ -1,6 +1,6 @@
-import { useState, useCallback, useEffect } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp } from "./components";
-import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS } from "./hooks";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback } from "./components";
+import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
 import type { PullRequest, Stack } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
@@ -11,11 +11,23 @@ function App() {
   const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
   const { theme, setTheme, toggleTheme } = useTheme();
+  const { status: syncStatus, config: syncConfig, syncNow, loading: syncLoading, startSync, updateConfig, error: syncError, clearError: clearSyncError } = useSync();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const isAuthenticated = authState.type === "authenticated";
+  
+  // Track if sync has been initialized for this session
+  const syncInitializedRef = useRef(false);
+
+  // Start sync when authenticated and repository is open (only once)
+  useEffect(() => {
+    if (isAuthenticated && repository && !syncInitializedRef.current) {
+      syncInitializedRef.current = true;
+      startSync();
+    }
+  }, [isAuthenticated, repository, startSync]);
 
   // Define keyboard shortcut callbacks
   const onNavigateDashboard = useCallback(() => setCurrentView("dashboard"), []);
@@ -126,6 +138,13 @@ function App() {
         </ul>
 
         <div className="sidebar-footer">
+          {repository && (
+            <SyncStatusIndicator
+              status={syncStatus}
+              onSyncNow={syncNow}
+              loading={syncLoading}
+            />
+          )}
           <ThemeToggle />
           <AuthView />
         </div>
@@ -141,30 +160,34 @@ function App() {
         ) : (
           <>
             {currentView === "dashboard" && (
-              <PRDashboard onSelectPR={(pr) => setSelectedPR(pr)} />
+              <ErrorBoundary fallback={<ViewErrorFallback message="Failed to load pull requests dashboard" />}>
+                <PRDashboard onSelectPR={(pr) => setSelectedPR(pr)} />
+              </ErrorBoundary>
             )}
 
             {currentView === "stacks" && (
-              <div className="stacks-view">
-                <h1>Stacks</h1>
-                {stacksLoading ? (
-                  <div className="loading">
-                    <div className="spinner" />
-                    <p>Loading stacks...</p>
-                  </div>
-                ) : stacksError ? (
-                  <div className="error">
-                    <p className="error-message">{stacksError}</p>
-                  </div>
-                ) : stacks.length === 0 ? (
-                  <div className="empty-state">
-                    <p>No stacks found</p>
-                    <p className="hint">Create a stack to organize your branches</p>
-                  </div>
-                ) : (
-                  <StackList stacks={stacks} onRestack={handleRestack} />
-                )}
-              </div>
+              <ErrorBoundary fallback={<ViewErrorFallback message="Failed to load stacks view" />}>
+                <div className="stacks-view">
+                  <h1>Stacks</h1>
+                  {stacksLoading ? (
+                    <div className="loading">
+                      <div className="spinner" />
+                      <p>Loading stacks...</p>
+                    </div>
+                  ) : stacksError ? (
+                    <div className="error">
+                      <p className="error-message">{stacksError}</p>
+                    </div>
+                  ) : stacks.length === 0 ? (
+                    <div className="empty-state">
+                      <p>No stacks found</p>
+                      <p className="hint">Create a stack to organize your branches</p>
+                    </div>
+                  ) : (
+                    <StackList stacks={stacks} onRestack={handleRestack} />
+                  )}
+                </div>
+              </ErrorBoundary>
             )}
 
             {currentView === "settings" && (
@@ -190,6 +213,62 @@ function App() {
                       </button>
                     </div>
                   </div>
+                </section>
+
+                <section className="settings-section">
+                  <h2>Synchronization</h2>
+                  <div className="setting-item">
+                    <label className="setting-label">Enable Sync</label>
+                    <label className="toggle-switch">
+                      <input 
+                        type="checkbox" 
+                        checked={syncConfig.enabled}
+                        onChange={(e) => updateConfig(syncConfig.interval_secs, e.target.checked)}
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                  </div>
+                  <div className="setting-item">
+                    <label className="setting-label">Sync Interval</label>
+                    <select
+                      className="setting-select"
+                      value={syncConfig.interval_secs}
+                      onChange={(e) => updateConfig(parseInt(e.target.value, 10), syncConfig.enabled)}
+                    >
+                      <option value="30">30 seconds</option>
+                      <option value="60">1 minute</option>
+                      <option value="120">2 minutes</option>
+                      <option value="300">5 minutes</option>
+                    </select>
+                  </div>
+                  <div className="setting-item">
+                    <p className="setting-description">
+                      Current status: {
+                        (() => {
+                          switch (syncStatus.status) {
+                            case "idle":
+                              return `Idle${syncStatus.last_sync ? ` (last sync: ${new Date(syncStatus.last_sync).toLocaleTimeString()})` : ""}`;
+                            case "in_progress":
+                              return "Sync in progress...";
+                            case "failed":
+                              return `Sync failed${syncStatus.error ? `: ${syncStatus.error}` : ""}`;
+                            case "rate_limited":
+                              return `Rate limited until ${new Date(syncStatus.resets_at).toLocaleTimeString()}`;
+                            default:
+                              return "Unknown";
+                          }
+                        })()
+                      }
+                    </p>
+                  </div>
+                  {syncError && (
+                    <div className="setting-item">
+                      <div className="sync-error">
+                        <p className="error-message">{syncError}</p>
+                        <button onClick={clearSyncError} className="dismiss-btn">Dismiss</button>
+                      </div>
+                    </div>
+                  )}
                 </section>
 
                 <section className="settings-section">

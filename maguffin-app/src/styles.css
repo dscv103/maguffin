@@ -1373,3 +1373,213 @@ body {
   flex-direction: column;
   gap: 12px;
 }
+
+/* Sync Status Indicator */
+.sync-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--bg-tertiary);
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.sync-status-indicator .sync-icon {
+  font-size: 1rem;
+}
+
+.sync-status-indicator .sync-label {
+  flex: 1;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync-status-indicator.sync-idle .sync-icon {
+  color: var(--accent-success);
+}
+
+.sync-status-indicator.sync-in-progress .sync-icon {
+  color: var(--accent-primary);
+  animation: spin 1s linear infinite;
+}
+
+.sync-status-indicator.sync-failed .sync-icon {
+  color: var(--accent-danger);
+}
+
+.sync-status-indicator.sync-rate-limited .sync-icon {
+  color: var(--accent-warning);
+}
+
+.sync-now-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.sync-now-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--accent-primary);
+}
+
+.sync-now-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Settings select */
+.setting-select {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  min-width: 150px;
+}
+
+.setting-description {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  margin-top: 4px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 24px;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--bg-tertiary);
+  transition: 0.3s;
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 2px;
+  background-color: var(--text-secondary);
+  transition: 0.3s;
+  border-radius: 50%;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background-color: var(--accent-primary);
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+  transform: translateX(22px);
+  background-color: white;
+}
+
+/* Sync Error in Settings */
+.sync-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(231, 76, 60, 0.1);
+  border: 1px solid var(--accent-danger);
+  border-radius: 6px;
+}
+
+.sync-error .error-message {
+  flex: 1;
+  color: var(--accent-danger);
+  font-size: 0.85rem;
+}
+
+.sync-error .dismiss-btn {
+  background: transparent;
+  border: 1px solid var(--accent-danger);
+  color: var(--accent-danger);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.75rem;
+}
+
+.sync-error .dismiss-btn:hover {
+  background: var(--accent-danger);
+  color: white;
+}
+
+/* Error Boundary */
+.error-boundary-fallback,
+.view-error-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  min-height: 200px;
+}
+
+.error-boundary-fallback h2,
+.view-error-fallback h3 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.error-boundary-fallback .error-message,
+.view-error-fallback p {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+
+.error-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+}
+
+.error-retry-btn {
+  padding: 10px 20px;
+  background: var(--accent-primary);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.error-retry-btn:hover {
+  opacity: 0.9;
+}
