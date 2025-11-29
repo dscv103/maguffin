@@ -191,6 +191,24 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Implemented conflict resolution UI, collapsible stacks, onboarding flow for first-time users, and stack reconciliation integration with UI.",
     "timestamp": "2025-11-29T03:45:00Z",
     "validation": "All 56 unit tests pass. Frontend builds successfully. Conflict resolution dialog shows restack results. Onboarding flow guides new users. Stack view supports collapse/expand. Reconciliation detects orphaned/modified branches."
+  },
+  {
+    "from_agent": "feature-developer",
+    "to_agent": "feature-developer",
+    "phase": "implementation-milestone-9",
+    "artefacts": [
+      "maguffin-app/src-tauri/src/github/mod.rs",
+      "maguffin-app/src/components/Markdown.test.tsx",
+      "maguffin-app/src/components/PullRequestCard.test.tsx",
+      "maguffin-app/src/components/ErrorBoundary.test.tsx",
+      "maguffin-app/src/test/setup.ts",
+      "maguffin-app/vite.config.ts",
+      "maguffin-app/package.json",
+      "PROGRESS.md"
+    ],
+    "trigger": "Implemented rate limit handling with exponential backoff in GitHub client. Added 46 frontend tests for Markdown, PullRequestCard, and ErrorBoundary components.",
+    "timestamp": "2025-11-29T04:15:00Z",
+    "validation": "All 58 backend unit tests pass. All 46 frontend tests pass. Frontend builds successfully. GitHub client now tracks rate limits from response headers and implements retry with exponential backoff."
   }
 ]
 ```

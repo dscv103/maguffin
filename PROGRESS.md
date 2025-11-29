@@ -224,7 +224,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-008 | Force push after restack | ✓ Complete |
 | FR-008 | Update PR base after parent merge | ✓ Complete |
 | FR-009 | Stack context in PR description | ✓ Complete |
-| FR-010 | Rate limit handling and backoff | Partial |
+| FR-010 | Rate limit handling and backoff | ✓ Complete |
 | NFR-001 | Performance benchmarking | Not Started |
 | NFR-004 | Dark/light theme support | ✓ Complete |
 | NFR-004 | Keyboard shortcuts | ✓ Complete |
@@ -247,7 +247,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] Add error boundaries to React components
 - [x] Integrate reconciliation with UI
 - [x] Improve loading states and error handling in UI
-- [ ] Add frontend tests (currently none)
+- [x] Add frontend tests
 
 ---
 
@@ -262,7 +262,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | domain/sync | 5 | ✓ Pass |
 | config | 3 | ✓ Pass |
 | git | 3 | ✓ Pass |
-| github/mod | 3 | ✓ Pass |
+| github/mod | 9 | ✓ Pass |
 | github/pr_service | 1 | ✓ Pass |
 | github/stack_service | 1 | ✓ Pass |
 | github/auth_service | 2 | ✓ Pass |
@@ -270,7 +270,9 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | cache | 6 | ✓ Pass |
 | keyring | 2 | ✓ Pass (1 ignored) |
 | error | 3 | ✓ Pass |
-| **Total** | **52** | ✓ All Pass |
+| **Backend Total** | **58** | ✓ All Pass |
+| **Frontend (React)** | **46** | ✓ All Pass |
+| **Grand Total** | **104** | ✓ All Pass |
 
 ---
 
@@ -284,6 +286,9 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | M4 | 2025-11-28 | Stack management commands, useStacks hook |
 | M5 | 2025-11-28 | Repository selection UI, OAuth client ID config |
 | M6 | 2025-11-28 | PR actions (create, merge, close), Stack PR creation |
+| M7 | 2025-11-28 | PR sorting, Markdown rendering, recent repositories |
+| M8 | 2025-11-29 | Conflict resolution UI, onboarding flow, collapsible stacks, reconciliation |
+| M9 | 2025-11-29 | Rate limit handling with backoff, frontend tests (46 tests) |
 
 ---
 
@@ -318,4 +323,4 @@ maguffin-app/
 
 ---
 
-*Last Updated: 2025-11-28*
+*Last Updated: 2025-11-29*
