@@ -11,6 +11,25 @@ use crate::domain::auth::{AuthState, DeviceFlowPending, TokenPollError};
 use crate::domain::pr::{MergeMethod, PullRequest, PullRequestDetails};
 use crate::error::Result;
 
+/// Request parameters for creating a new pull request.
+#[derive(Debug, Clone)]
+pub struct CreatePullRequestRequest<'a> {
+    /// Repository owner (user or organization)
+    pub owner: &'a str,
+    /// Repository name
+    pub repo: &'a str,
+    /// Pull request title
+    pub title: &'a str,
+    /// Pull request description
+    pub body: Option<&'a str>,
+    /// Source branch name
+    pub head: &'a str,
+    /// Target branch name
+    pub base: &'a str,
+    /// Whether to create as a draft
+    pub draft: bool,
+}
+
 /// Identifies a Git hosting provider.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -119,26 +138,11 @@ pub trait PullRequestProvider: Send + Sync {
     /// Create a new pull request.
     ///
     /// # Arguments
-    /// * `owner` - Repository owner
-    /// * `repo` - Repository name
-    /// * `title` - Pull request title
-    /// * `body` - Pull request description
-    /// * `head` - Source branch name
-    /// * `base` - Target branch name
-    /// * `draft` - Whether to create as a draft
+    /// * `request` - Pull request creation parameters
     ///
     /// # Returns
     /// The created pull request number.
-    async fn create_pull_request(
-        &self,
-        owner: &str,
-        repo: &str,
-        title: &str,
-        body: Option<&str>,
-        head: &str,
-        base: &str,
-        draft: bool,
-    ) -> Result<i64>;
+    async fn create_pull_request(&self, request: CreatePullRequestRequest<'_>) -> Result<i64>;
 
     /// Merge a pull request.
     ///
