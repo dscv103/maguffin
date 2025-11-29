@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import { PullRequestCard } from "./PullRequestCard";
 import type { PullRequest } from "../types";
@@ -31,7 +31,20 @@ function createTestPR(overrides: Partial<PullRequest> = {}): PullRequest {
   };
 }
 
+// Fixed date for consistent date-based tests
+const FIXED_NOW = new Date("2025-01-15T12:00:00Z").getTime();
+
 describe("PullRequestCard", () => {
+  // Mock Date.now() for date-based tests
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(FIXED_NOW);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("renders PR number and title", () => {
     const pr = createTestPR({ number: 42, title: "My Test PR" });
     render(<PullRequestCard pr={pr} />);
@@ -162,25 +175,24 @@ describe("PullRequestCard", () => {
   });
 
   it("shows 'today' for PRs updated today", () => {
-    const pr = createTestPR({ updated_at: new Date().toISOString() });
+    // Use the fixed system time (FIXED_NOW = 2025-01-15T12:00:00Z)
+    const pr = createTestPR({ updated_at: "2025-01-15T10:00:00Z" });
     render(<PullRequestCard pr={pr} />);
 
     expect(screen.getByText(/Updated today/)).toBeInTheDocument();
   });
 
   it("shows 'yesterday' for PRs updated yesterday", () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const pr = createTestPR({ updated_at: yesterday.toISOString() });
+    // One day before the fixed date
+    const pr = createTestPR({ updated_at: "2025-01-14T10:00:00Z" });
     render(<PullRequestCard pr={pr} />);
 
     expect(screen.getByText(/Updated yesterday/)).toBeInTheDocument();
   });
 
   it("shows 'N days ago' for recent PRs", () => {
-    const threeDaysAgo = new Date();
-    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
-    const pr = createTestPR({ updated_at: threeDaysAgo.toISOString() });
+    // Three days before the fixed date
+    const pr = createTestPR({ updated_at: "2025-01-12T10:00:00Z" });
     render(<PullRequestCard pr={pr} />);
 
     expect(screen.getByText(/Updated 3 days ago/)).toBeInTheDocument();

@@ -400,13 +400,13 @@ mod tests {
     fn test_rate_limit_state_backoff_duration() {
         let mut state = RateLimitState::default();
         
-        // First hit: 60 seconds
+        // After first rate limit hit: consecutive_hits = 1, 60 * 2^1 = 120 seconds
         state.mark_rate_limited(None);
-        assert_eq!(state.backoff_duration().as_secs(), 120); // 60 * 2^1
+        assert_eq!(state.backoff_duration().as_secs(), 120);
         
-        // Second hit: exponential backoff
+        // After second hit: consecutive_hits = 2, 60 * 2^2 = 240 seconds
         state.mark_rate_limited(None);
-        assert_eq!(state.backoff_duration().as_secs(), 240); // 60 * 2^2
+        assert_eq!(state.backoff_duration().as_secs(), 240);
     }
 
     #[test]
