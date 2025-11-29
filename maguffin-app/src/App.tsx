@@ -286,7 +286,11 @@ function App() {
                       <p className="hint">Create a stack to organize your branches</p>
                     </div>
                   ) : (
-                    <StackList stacks={stacks} onRestack={handleRestack} />
+                    <StackList 
+                      stacks={stacks} 
+                      currentBranch={repository?.current_branch}
+                      onRestack={handleRestack} 
+                    />
                   )}
                 </div>
               </ErrorBoundary>

@@ -594,6 +594,23 @@ body {
   font-size: 0.85rem;
 }
 
+.branch-content.current-branch {
+  background-color: var(--accent-primary);
+  color: var(--text-primary);
+  border: 2px solid var(--accent-success);
+}
+
+.branch-content.current-branch:hover {
+  background-color: var(--accent-primary);
+  opacity: 0.9;
+}
+
+.current-branch-indicator {
+  color: var(--accent-success);
+  font-size: 0.7rem;
+  margin-left: 4px;
+}
+
 /* PR Detail Panel */
 .pr-detail-panel {
   width: 400px;
