@@ -4,7 +4,17 @@
 //! with a CLI fallback for complex operations.
 
 use crate::error::{GitError, Result};
+use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+
+/// State of an in-progress rebase.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RebaseState {
+    /// The branch being rebased
+    pub branch: Option<String>,
+    /// The target commit/branch we're rebasing onto
+    pub onto: Option<String>,
+}
 
 /// Trait for Git operations, allowing different implementations.
 pub trait GitOperations: Send {
@@ -161,6 +171,145 @@ impl Git2Backend {
             .map_err(|e| GitError::RebaseFailed(e.to_string()))?;
 
         Ok(())
+    }
+
+    /// Continue an in-progress rebase after conflicts are resolved.
+    pub fn continue_rebase(&self) -> Result<()> {
+        let workdir = self
+            .workdir()
+            .ok_or_else(|| GitError::RepositoryNotFound("No working directory".to_string()))?;
+
+        let output = std::process::Command::new("git")
+            .args(["rebase", "--continue"])
+            .current_dir(workdir)
+            .output()
+            .map_err(|e| GitError::RebaseFailed(e.to_string()))?;
+
+        if output.status.success() {
+            Ok(())
+        } else {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            if stderr.contains("conflict") || stderr.contains("CONFLICT") {
+                Err(GitError::Conflict { files: Vec::new() }.into())
+            } else {
+                Err(GitError::RebaseFailed(stderr.to_string()).into())
+            }
+        }
+    }
+
+    /// Check if a rebase is in progress.
+    pub fn is_rebase_in_progress(&self) -> bool {
+        let workdir = match self.workdir() {
+            Some(w) => w,
+            None => return false,
+        };
+
+        let rebase_merge = workdir.join(".git").join("rebase-merge");
+        let rebase_apply = workdir.join(".git").join("rebase-apply");
+
+        rebase_merge.exists() || rebase_apply.exists()
+    }
+
+    /// Get the state of an in-progress rebase.
+    pub fn get_rebase_state(&self) -> Option<RebaseState> {
+        let workdir = self.workdir()?;
+        let git_dir = workdir.join(".git");
+
+        // Check for rebase-merge (interactive rebase)
+        let rebase_merge = git_dir.join("rebase-merge");
+        if rebase_merge.exists() {
+            let onto = std::fs::read_to_string(rebase_merge.join("onto"))
+                .ok()
+                .map(|s| s.trim().to_string());
+            let head_name = std::fs::read_to_string(rebase_merge.join("head-name"))
+                .ok()
+                .map(|s| s.trim().replace("refs/heads/", ""));
+
+            return Some(RebaseState {
+                branch: head_name,
+                onto,
+            });
+        }
+
+        // Check for rebase-apply (am-style rebase)
+        let rebase_apply = git_dir.join("rebase-apply");
+        if rebase_apply.exists() {
+            let onto = std::fs::read_to_string(rebase_apply.join("onto"))
+                .ok()
+                .map(|s| s.trim().to_string());
+            let head_name = std::fs::read_to_string(rebase_apply.join("head-name"))
+                .ok()
+                .map(|s| s.trim().replace("refs/heads/", ""));
+
+            return Some(RebaseState {
+                branch: head_name,
+                onto,
+            });
+        }
+
+        None
+    }
+
+    /// Count commits that would be replayed when rebasing branch onto target.
+    /// Returns the number of commits unique to branch that are not in target.
+    pub fn commits_to_replay(&self, branch: &str, target: &str) -> Result<i32> {
+        let branch_oid = self
+            .repo
+            .revparse_single(&format!("refs/heads/{}", branch))
+            .map_err(|e| GitError::Branch(format!("Branch not found: {}", e)))?
+            .id();
+
+        let target_oid = self
+            .repo
+            .revparse_single(&format!("refs/heads/{}", target))
+            .map_err(|e| GitError::Branch(format!("Target branch not found: {}", e)))?
+            .id();
+
+        // Find merge base
+        let merge_base = self
+            .repo
+            .merge_base(branch_oid, target_oid)
+            .map_err(|e| GitError::Branch(format!("Failed to find merge base: {}", e)))?;
+
+        // Count commits from merge base to branch head
+        let mut count = 0;
+        let mut revwalk = self.repo.revwalk().map_err(|e| GitError::Branch(e.to_string()))?;
+        revwalk.push(branch_oid).map_err(|e| GitError::Branch(e.to_string()))?;
+        revwalk.hide(merge_base).map_err(|e| GitError::Branch(e.to_string()))?;
+
+        for _ in revwalk {
+            count += 1;
+        }
+
+        Ok(count)
+    }
+
+    /// Get files with conflicts.
+    pub fn get_conflict_files(&self) -> Vec<String> {
+        let workdir = match self.workdir() {
+            Some(w) => w,
+            None => return Vec::new(),
+        };
+
+        // Use git status to find conflicting files
+        let output = std::process::Command::new("git")
+            .args(["status", "--porcelain=v2"])
+            .current_dir(workdir)
+            .output()
+            .ok();
+
+        if let Some(output) = output {
+            if output.status.success() {
+                return String::from_utf8_lossy(&output.stdout)
+                    .lines()
+                    .filter(|line| line.starts_with("u ")) // Unmerged files
+                    .filter_map(|line| line.split_whitespace().last())
+                    .map(|s| s.to_string())
+                    .collect();
+            }
+        }
+
+        Vec::new()
     }
 
     /// Force push a branch to remote.

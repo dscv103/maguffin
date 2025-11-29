@@ -4,8 +4,8 @@
 //! including creation, restacking, and reconciliation.
 
 use crate::domain::stack::{
-    BranchStatus, ReconcileReport, RestackConflict, RestackResult, RestackStatus, Stack,
-    StackBranch, StackMetadata, Warning,
+    BranchStatus, ReconcileReport, RestackBranchPreview, RestackConflict, RestackPreview,
+    RestackResult, RestackStatus, Stack, StackBranch, StackMetadata, Warning,
 };
 use crate::error::{GitError, Result};
 use crate::git::{Git2Backend, GitOperations};
@@ -148,6 +148,7 @@ impl StackService {
             restacked: Vec::new(),
             conflicts: Vec::new(),
             error: None,
+            dry_run: false,
         };
 
         // Get branches in topological order
@@ -212,7 +213,11 @@ impl StackService {
                 Err(e) => {
                     // Check if it's a conflict
                     if e.to_string().contains("conflict") {
-                        let conflict_files = self.get_conflict_files().await;
+                        // Get actual conflict files from git
+                        let conflict_files = {
+                            let git = self.git.lock().expect("git lock poisoned");
+                            git.get_conflict_files()
+                        };
                         result.conflicts.push(RestackConflict {
                             branch: branch.name.clone(),
                             files: conflict_files,
@@ -251,10 +256,101 @@ impl StackService {
         Ok(result)
     }
 
-    /// Get files with conflicts.
-    async fn get_conflict_files(&self) -> Vec<String> {
-        // In a real implementation, this would check the git index for conflicts
-        Vec::new()
+    /// Preview what a restack operation will do without making any changes.
+    /// This is the dry-run mode for restack.
+    pub async fn preview_restack(&self, stack_id: uuid::Uuid) -> Result<RestackPreview> {
+        let stack = self
+            .get_stack(stack_id)
+            .await
+            .ok_or_else(|| GitError::Branch("Stack not found".to_string()))?;
+
+        let mut preview = RestackPreview {
+            will_rebase: Vec::new(),
+            up_to_date: Vec::new(),
+            total_commits: 0,
+        };
+
+        // Get branches in topological order
+        let branches = stack.topological_order();
+
+        for branch in branches {
+            let git = self.git.lock().expect("git lock poisoned");
+
+            // Check if branch needs restacking
+            let needs_restack = git
+                .needs_rebase(&branch.name, &branch.parent)
+                .unwrap_or(true);
+
+            if !needs_restack {
+                preview.up_to_date.push(branch.name.clone());
+                continue;
+            }
+
+            // Count commits that will be replayed
+            let commits = git
+                .commits_to_replay(&branch.name, &branch.parent)
+                .unwrap_or(0);
+
+            preview.will_rebase.push(RestackBranchPreview {
+                branch: branch.name.clone(),
+                onto: branch.parent.clone(),
+                commits_to_replay: commits,
+                has_pr: branch.pr_number.is_some(),
+            });
+
+            preview.total_commits += commits;
+        }
+
+        Ok(preview)
+    }
+
+    /// Continue a restack after conflicts have been resolved.
+    pub async fn continue_restack(&self, stack_id: uuid::Uuid) -> Result<RestackResult> {
+        // First, try to continue the current rebase
+        let continue_result = {
+            let git = self.git.lock().expect("git lock poisoned");
+            git.continue_rebase()
+        };
+
+        match continue_result {
+            Ok(_) => {
+                // Rebase continued successfully, now continue with the rest of the stack
+                self.restack(stack_id).await
+            }
+            Err(e) => {
+                // Still have conflicts
+                let conflict_files = {
+                    let git = self.git.lock().expect("git lock poisoned");
+                    git.get_conflict_files()
+                };
+
+                let rebase_state = {
+                    let git = self.git.lock().expect("git lock poisoned");
+                    git.get_rebase_state()
+                };
+
+                let branch_name = rebase_state
+                    .and_then(|s| s.branch)
+                    .unwrap_or_else(|| "unknown".to_string());
+
+                Ok(RestackResult {
+                    status: RestackStatus::Conflicts,
+                    restacked: Vec::new(),
+                    conflicts: vec![RestackConflict {
+                        branch: branch_name,
+                        files: conflict_files,
+                    }],
+                    error: Some(e.to_string()),
+                    dry_run: false,
+                })
+            }
+        }
+    }
+
+    /// Check if a rebase is currently in progress.
+    pub fn is_rebase_in_progress(&self) -> bool {
+        let git = self.git.lock().expect("git lock poisoned");
+        git.is_rebase_in_progress()
     }
 
     /// Reconcile stack metadata with actual Git state.

@@ -5,12 +5,16 @@ interface ConflictResolutionDialogProps {
   result: RestackResult;
   onClose: () => void;
   onRetry?: () => void;
+  onContinue?: () => void;
+  isContinuing?: boolean;
 }
 
 export function ConflictResolutionDialog({
   result,
   onClose,
   onRetry,
+  onContinue,
+  isContinuing = false,
 }: ConflictResolutionDialogProps) {
   const hasConflicts = result.status === "conflicts" && result.conflicts.length > 0;
   const hasFailed = result.status === "failed";
@@ -134,12 +138,26 @@ export function ConflictResolutionDialog({
         </div>
 
         <footer className="dialog-footer">
-          {(hasConflicts || hasFailed) && onRetry && (
-            <button className="btn btn-primary" onClick={onRetry}>
-              Retry Restack
+          {hasConflicts && onContinue && (
+            <button 
+              className="btn btn-primary" 
+              onClick={onContinue}
+              disabled={isContinuing}
+              title="Use after resolving conflicts manually in your terminal"
+            >
+              {isContinuing ? "Continuing..." : "Continue Restack"}
             </button>
           )}
-          <button className="btn btn-secondary" onClick={onClose}>
+          {(hasConflicts || hasFailed) && onRetry && (
+            <button 
+              className="btn btn-secondary" 
+              onClick={onRetry}
+              disabled={isContinuing}
+            >
+              Retry from Start
+            </button>
+          )}
+          <button className="btn btn-secondary" onClick={onClose} disabled={isContinuing}>
             {isSuccess ? "Done" : "Close"}
           </button>
         </footer>

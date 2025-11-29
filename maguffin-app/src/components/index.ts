@@ -11,4 +11,5 @@ export { KeyboardShortcutsHelp } from "./KeyboardShortcutsHelp";
 export { SyncStatusIndicator } from "./SyncStatusIndicator";
 export { ErrorBoundary, ViewErrorFallback } from "./ErrorBoundary";
 export { ConflictResolutionDialog } from "./ConflictResolutionDialog";
+export { RestackPreviewDialog } from "./RestackPreviewDialog";
 export { OnboardingFlow, useOnboarding } from "./OnboardingFlow";

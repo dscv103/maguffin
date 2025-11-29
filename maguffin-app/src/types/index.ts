@@ -183,6 +183,27 @@ export interface RestackResult {
   restacked: string[];
   conflicts: RestackConflict[];
   error: string | null;
+  dry_run: boolean;
+}
+
+// Restack preview types (dry-run mode)
+export interface RestackBranchPreview {
+  branch: string;
+  onto: string;
+  commits_to_replay: number;
+  has_pr: boolean;
+}
+
+export interface RestackPreview {
+  will_rebase: RestackBranchPreview[];
+  up_to_date: string[];
+  total_commits: number;
+}
+
+// Rebase state
+export interface RebaseState {
+  branch: string | null;
+  onto: string | null;
 }
 
 // Reconcile types

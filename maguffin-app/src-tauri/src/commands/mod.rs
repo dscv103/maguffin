@@ -7,11 +7,11 @@ use crate::cache::{Cache, RecentRepository};
 use crate::config::SyncConfig;
 use crate::domain::pr::PullRequestDetails;
 use crate::domain::repo::GitHubRemote;
-use crate::domain::stack::{ReconcileReport, RestackResult, Stack};
+use crate::domain::stack::{ReconcileReport, RestackPreview, RestackResult, Stack};
 use crate::domain::sync::SyncStatus;
 use crate::domain::{AuthState, PullRequest, Repository, SyncState};
 use crate::error::AppError;
-use crate::git::{Git2Backend, GitOperations};
+use crate::git::{Git2Backend, GitOperations, RebaseState};
 use crate::github::{AuthService, GitHubClient, PrService, StackService, SyncService};
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -636,6 +636,103 @@ pub async fn restack(
     .map_err(|e| format!("Task failed: {:?}", e))?
 }
 
+/// Preview what a restack operation will do without making any changes.
+/// This is the dry-run mode for restack.
+#[tauri::command]
+pub async fn preview_restack(
+    state: State<'_, AppState>,
+    stack_id: String,
+) -> Result<RestackPreview, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
+        let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
+
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async { stack_service.preview_restack(stack_uuid).await })
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("Task failed: {:?}", e))?
+}
+
+/// Continue a restack operation after conflicts have been resolved.
+#[tauri::command]
+pub async fn continue_restack(
+    state: State<'_, AppState>,
+    stack_id: String,
+) -> Result<RestackResult, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo.path, git).map_err(|e| e.to_string())?;
+        let stack_uuid = uuid::Uuid::parse_str(&stack_id).map_err(|e| e.to_string())?;
+
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async { stack_service.continue_restack(stack_uuid).await })
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("Task failed: {:?}", e))?
+}
+
+/// Check if a rebase is currently in progress.
+#[tauri::command]
+pub async fn is_rebase_in_progress(state: State<'_, AppState>) -> Result<bool, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        Ok::<bool, String>(git.is_rebase_in_progress())
+    })
+    .await
+    .map_err(|e| format!("Task failed: {:?}", e))?
+}
+
+/// Get the current rebase state if a rebase is in progress.
+#[tauri::command]
+pub async fn get_rebase_state(state: State<'_, AppState>) -> Result<Option<RebaseState>, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        Ok::<Option<RebaseState>, String>(git.get_rebase_state())
+    })
+    .await
+    .map_err(|e| format!("Task failed: {:?}", e))?
+}
+
 /// Create a PR for a branch in a stack with the correct base branch.
 #[tauri::command]
 pub async fn create_stack_pr(
@@ -858,6 +955,10 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         create_stack_branch,
         create_stack_pr,
         restack,
+        preview_restack,
+        continue_restack,
+        is_rebase_in_progress,
+        get_rebase_state,
         reconcile_stacks,
         get_sync_status,
         start_sync,

@@ -117,10 +117,10 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] **Conflict Reporting** - `RestackResult` with conflict info
 - [x] **Rebase Abort** - Clean abort on conflict
 - [x] **Conflict Resolution UI** - `ConflictResolutionDialog.tsx` shows restack results with conflict details
-- [ ] **Resume After Conflict** - Deferred to future version
+- [x] **Resume After Conflict** - `continue_restack` command and "Continue Restack" button in UI
 - [x] **PR Base Branch Update** - Wired via `update_pr_base` command
 - [x] **Force Push After Rebase** - Integrated into restack flow
-- [ ] **Dry-Run Mode** - Deferred to future version
+- [x] **Dry-Run Mode** - `preview_restack` command and `RestackPreviewDialog` component
 
 ### Stack PR Creation (FR-009)
 
@@ -235,7 +235,8 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 |-------------|------|--------|
 | FR-007 | Collapse/expand stack sections | ✓ Complete |
 | FR-007 | Highlight current branch in stack | ✓ Complete |
-| FR-008 | Dry-run mode for restack | Deferred |
+| FR-008 | Dry-run mode for restack | ✓ Complete |
+| FR-008 | Resume after conflict | ✓ Complete |
 | FR-009 | PR description template | Deferred |
 | NFR-004 | Onboarding flow | ✓ Complete |
 | NFR-005 | Provider abstraction layer | ✓ Complete |
@@ -257,7 +258,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | Module | Test Count | Status |
 |--------|------------|--------|
 | domain/pr | 3 | ✓ Pass |
-| domain/stack | 5 | ✓ Pass |
+| domain/stack | 7 | ✓ Pass |
 | domain/auth | 4 | ✓ Pass |
 | domain/repo | 8 | ✓ Pass |
 | domain/sync | 5 | ✓ Pass |
@@ -273,9 +274,9 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | keyring | 2 | ✓ Pass (1 ignored) |
 | error | 3 | ✓ Pass |
 | provider | 3 | ✓ Pass |
-| **Backend Total** | **64** | ✓ All Pass |
+| **Backend Total** | **66** | ✓ All Pass |
 | **Frontend (React)** | **46** | ✓ All Pass |
-| **Grand Total** | **110** | ✓ All Pass |
+| **Grand Total** | **112** | ✓ All Pass |
 
 ---
 
@@ -293,6 +294,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | M8 | 2025-11-29 | Conflict resolution UI, onboarding flow, collapsible stacks, reconciliation |
 | M9 | 2025-11-29 | Rate limit handling with backoff, frontend tests (46 tests) |
 | M10 | 2025-11-29 | Provider abstraction layer with traits for future multi-provider support |
+| M11 | 2025-11-29 | Deferred work: dry-run mode for restack, resume after conflict, rebase state detection |
 
 ---
 
