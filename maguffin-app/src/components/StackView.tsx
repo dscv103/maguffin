@@ -3,12 +3,13 @@ import type { Stack, StackBranch } from "../types";
 
 interface StackViewProps {
   stack: Stack;
+  currentBranch?: string;
   onBranchClick?: (branch: StackBranch) => void;
   onRestack?: (stack: Stack) => void;
   defaultExpanded?: boolean;
 }
 
-export function StackView({ stack, onBranchClick, onRestack, defaultExpanded = true }: StackViewProps) {
+export function StackView({ stack, currentBranch, onBranchClick, onRestack, defaultExpanded = true }: StackViewProps) {
   const [expanded, setExpanded] = useState(defaultExpanded);
   const getStatusIcon = (status: StackBranch["status"]): string => {
     switch (status) {
@@ -55,6 +56,7 @@ export function StackView({ stack, onBranchClick, onRestack, defaultExpanded = t
       visited.add(branchName);
 
       const children = stack.branches.filter((b) => b.parent === branchName);
+      const isCurrentBranch = currentBranch === branchName;
 
       return (
         <div
@@ -63,7 +65,7 @@ export function StackView({ stack, onBranchClick, onRestack, defaultExpanded = t
           style={{ marginLeft: `${depth * 20}px` }}
         >
           <div
-            className="branch-content"
+            className={`branch-content${isCurrentBranch ? " current-branch" : ""}`}
             onClick={() => branch && onBranchClick?.(branch)}
             role="button"
             tabIndex={0}
@@ -75,6 +77,9 @@ export function StackView({ stack, onBranchClick, onRestack, defaultExpanded = t
               {getStatusIcon(branch.status)}
             </span>
             <span className="branch-name">{branch.name}</span>
+            {isCurrentBranch && (
+              <span className="current-branch-indicator" title="Current branch">●</span>
+            )}
             {branch.pr_number && (
               <span className="branch-pr">#{branch.pr_number}</span>
             )}
@@ -148,6 +153,7 @@ export function StackView({ stack, onBranchClick, onRestack, defaultExpanded = t
 
 interface StackListProps {
   stacks: Stack[];
+  currentBranch?: string;
   onStackSelect?: (stack: Stack) => void;
   onBranchClick?: (branch: StackBranch) => void;
   onRestack?: (stack: Stack) => void;
@@ -155,6 +161,7 @@ interface StackListProps {
 
 export function StackList({
   stacks,
+  currentBranch,
   onStackSelect: _onStackSelect,
   onBranchClick,
   onRestack,
@@ -174,6 +181,7 @@ export function StackList({
         <StackView
           key={stack.id}
           stack={stack}
+          currentBranch={currentBranch}
           onBranchClick={onBranchClick}
           onRestack={onRestack}
         />

@@ -74,8 +74,8 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
   - [x] Merge eligibility status (mergeable field)
 - [x] **Frontend Component** - `PRDetailPanel.tsx` component
 - [x] **Markdown Rendering** - Body displayed with Markdown component for headings, bold, italic, code, links, lists
-- [ ] **Unified Diff View** - Not implemented
-- [ ] **CI/Check Status Indicators** - Not implemented
+- [ ] **Unified Diff View** - Deferred to future version
+- [x] **CI/Check Status Indicators** - `CheckStatus.tsx` component displays check run status with icons and links
 
 ### Pull Request Actions (FR-005)
 
@@ -84,8 +84,8 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] **Close PR** - Close without merging via GraphQL mutation
 - [x] **Create PR** - Create new PR via GraphQL mutation
 - [x] **Frontend Actions** - `usePullRequestActions` hook
-- [ ] **Open in Browser** - Not implemented
-- [ ] **Refresh Button** - Manual refresh via hook available
+- [x] **Open in Browser** - Implemented via Tauri shell API
+- [x] **Refresh Button** - Manual refresh via hook available
 
 ### Stacked Branches - Stack Definition (FR-006)
 
@@ -95,7 +95,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] **Linear Stacks Support** - A → B → C → main workflow
 - [x] **Branching Stacks Support** - Multiple children per parent
 - [x] **Orphan Detection** - Branch status tracking (orphaned, needs_rebase, etc.)
-- [ ] **External Git Operation Handling** - Partial (reconciliation logic exists)
+- [x] **External Git Operation Handling** - Reconciliation logic detects orphaned/modified branches
 
 ### Stacked Branches - Visualization (FR-007)
 
@@ -105,8 +105,8 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
   - [x] Associated PR number (if any)
   - [x] Sync status display
 - [x] **Topological Ordering** - Branches displayed in parent-first order
-- [ ] **Collapse/Expand Sections** - Not implemented
-- [ ] **Highlight Current Branch** - Not implemented
+- [x] **Collapse/Expand Sections** - Stack headers toggle expanded/collapsed state
+- [x] **Highlight Current Branch** - Current branch highlighted with accent color and indicator
 
 ### Stacked Branches - Restack Operation (FR-008)
 
@@ -116,11 +116,11 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] **Conflict Detection** - Detect and abort on conflict
 - [x] **Conflict Reporting** - `RestackResult` with conflict info
 - [x] **Rebase Abort** - Clean abort on conflict
-- [ ] **Conflict Resolution UI** - Not implemented (just reports conflicts)
-- [ ] **Resume After Conflict** - Not implemented
-- [ ] **PR Base Branch Update** - Stub exists, not wired
-- [ ] **Force Push After Rebase** - Method exists, not wired to restack
-- [ ] **Dry-Run Mode** - Not implemented
+- [x] **Conflict Resolution UI** - `ConflictResolutionDialog.tsx` shows restack results with conflict details
+- [ ] **Resume After Conflict** - Deferred to future version
+- [x] **PR Base Branch Update** - Wired via `update_pr_base` command
+- [x] **Force Push After Rebase** - Integrated into restack flow
+- [ ] **Dry-Run Mode** - Deferred to future version
 
 ### Stack PR Creation (FR-009)
 
@@ -128,19 +128,19 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] **Correct Base Branch** - Uses parent branch as base
 - [x] **PR Number Association** - Saves PR number to stack metadata
 - [x] **Auto-populate Title** - Accepts title parameter
-- [ ] **PR Description Template** - Not implemented
-- [ ] **Stack Context in Description** - Not implemented
-- [ ] **Update Base on Parent Merge** - Stub exists, not fully implemented
+- [ ] **PR Description Template** - Deferred to future version
+- [x] **Stack Context in Description** - Stack links added to PR body
+- [x] **Update Base on Parent Merge** - Implemented via `update_pr_base` command
 
 ### Data Synchronization (FR-010)
 
 - [x] **Manual Refresh** - Via hooks and commands
 - [x] **PR Caching** - Cache module with SQLite
-- [ ] **Background Sync** - Not implemented
-- [ ] **Configurable Interval** - Config supports it, sync service not running
-- [ ] **Sync Indicator** - Not implemented
-- [ ] **Offline Mode** - Not implemented
-- [ ] **Rate Limit Awareness** - Client structure exists, not fully implemented
+- [x] **Background Sync** - `useSync` hook with `SyncStatusIndicator` component
+- [x] **Configurable Interval** - Settings UI with 30s/1m/2m/5m options
+- [x] **Sync Indicator** - `SyncStatusIndicator.tsx` shows sync status with last sync time
+- [ ] **Offline Mode** - Deferred to future version
+- [x] **Rate Limit Awareness** - GitHub client tracks rate limits and implements exponential backoff
 
 ### Git Operations Layer
 
@@ -167,7 +167,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
   - [x] `CreatePullRequest`
   - [x] `MergePullRequest`
   - [x] `ClosePullRequest`
-- [ ] `UpdatePullRequestBranch` - Not implemented
+  - [x] `UpdatePullRequestBranch` - Update PR base branch
 
 ### Storage Layer
 
@@ -234,6 +234,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | Requirement | Item | Status |
 |-------------|------|--------|
 | FR-007 | Collapse/expand stack sections | ✓ Complete |
+| FR-007 | Highlight current branch in stack | ✓ Complete |
 | FR-008 | Dry-run mode for restack | Deferred |
 | FR-009 | PR description template | Deferred |
 | NFR-004 | Onboarding flow | ✓ Complete |
@@ -265,14 +266,15 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | github/mod | 9 | ✓ Pass |
 | github/pr_service | 1 | ✓ Pass |
 | github/stack_service | 1 | ✓ Pass |
+| github/sync_service | 4 | ✓ Pass |
 | github/auth_service | 2 | ✓ Pass |
 | github/queries | 2 | ✓ Pass |
 | cache | 6 | ✓ Pass |
 | keyring | 2 | ✓ Pass (1 ignored) |
 | error | 3 | ✓ Pass |
-| **Backend Total** | **58** | ✓ All Pass |
+| **Backend Total** | **61** | ✓ All Pass |
 | **Frontend (React)** | **46** | ✓ All Pass |
-| **Grand Total** | **104** | ✓ All Pass |
+| **Grand Total** | **107** | ✓ All Pass |
 
 ---
 
