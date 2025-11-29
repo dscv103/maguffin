@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback, ConflictResolutionDialog } from "./components";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback, ConflictResolutionDialog, OnboardingFlow, useOnboarding } from "./components";
 import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
 import type { PullRequest, Stack, RestackResult } from "./types";
 
@@ -12,6 +12,7 @@ function App() {
   const { refresh: refreshPRs } = usePullRequests();
   const { theme, setTheme, toggleTheme } = useTheme();
   const { status: syncStatus, config: syncConfig, syncNow, loading: syncLoading, startSync, updateConfig, error: syncError, clearError: clearSyncError } = useSync();
+  const { showOnboarding, completeOnboarding, resetOnboarding } = useOnboarding();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -74,6 +75,18 @@ function App() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
+
+  // Show onboarding for first-time users (before auth)
+  if (showOnboarding) {
+    return (
+      <div className="app">
+        <OnboardingFlow 
+          onComplete={completeOnboarding} 
+          onSkip={completeOnboarding} 
+        />
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -306,6 +319,9 @@ function App() {
                 <section className="settings-section">
                   <h2>About</h2>
                   <p className="about-text">Maguffin is a cross-platform Git client with a Tower-style PR dashboard and Graphite-style stacked PR workflow.</p>
+                  <button className="replay-onboarding-btn" onClick={resetOnboarding}>
+                    🎓 Replay onboarding tour
+                  </button>
                 </section>
               </div>
             )}
