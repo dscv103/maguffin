@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback } from "./components";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback, ConflictResolutionDialog } from "./components";
 import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
-import type { PullRequest, Stack } from "./types";
+import type { PullRequest, Stack, RestackResult } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
 
@@ -15,6 +15,8 @@ function App() {
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [restackResult, setRestackResult] = useState<RestackResult | null>(null);
+  const [currentRestackStackId, setCurrentRestackStackId] = useState<string | null>(null);
 
   const isAuthenticated = authState.type === "authenticated";
   
@@ -82,7 +84,25 @@ function App() {
   }
 
   const handleRestack = async (stack: Stack) => {
-    await restackStack(stack.id);
+    setCurrentRestackStackId(stack.id);
+    const result = await restackStack(stack.id);
+    if (result) {
+      setRestackResult(result);
+    }
+  };
+
+  const handleRetryRestack = async () => {
+    if (currentRestackStackId) {
+      const result = await restackStack(currentRestackStackId);
+      if (result) {
+        setRestackResult(result);
+      }
+    }
+  };
+
+  const handleCloseRestackDialog = () => {
+    setRestackResult(null);
+    setCurrentRestackStackId(null);
   };
 
   const handlePRActionComplete = () => {
@@ -304,6 +324,14 @@ function App() {
 
       {showShortcuts && (
         <KeyboardShortcutsHelp onClose={() => setShowShortcuts(false)} />
+      )}
+
+      {restackResult && (
+        <ConflictResolutionDialog
+          result={restackResult}
+          onClose={handleCloseRestackDialog}
+          onRetry={restackResult.status !== "success" ? handleRetryRestack : undefined}
+        />
       )}
     </div>
   );

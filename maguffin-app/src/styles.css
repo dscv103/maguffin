@@ -1583,3 +1583,285 @@ body {
 .error-retry-btn:hover {
   opacity: 0.9;
 }
+
+/* ============================================
+   Conflict Resolution Dialog
+   ============================================ */
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow), 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dialog-header h2 {
+  flex: 1;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.dialog-header .close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.dialog-header .close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dialog-header .status-icon {
+  font-size: 1.5rem;
+}
+
+.dialog-header .status-icon.status-green {
+  color: var(--accent-success);
+}
+
+.dialog-header .status-icon.status-yellow {
+  color: var(--accent-warning);
+}
+
+.dialog-header .status-icon.status-red {
+  color: var(--accent-danger);
+}
+
+.dialog-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+/* Conflict Resolution Specific Styles */
+.conflict-resolution-dialog .success-message,
+.conflict-resolution-dialog .conflict-details,
+.conflict-resolution-dialog .error-message {
+  margin-bottom: 16px;
+}
+
+.conflict-resolution-dialog .conflict-intro {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.restacked-branches,
+.conflict-branches {
+  margin-bottom: 20px;
+}
+
+.restacked-branches h4,
+.conflict-branches h4,
+.resolution-instructions h4 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.restacked-branches ul {
+  list-style: none;
+  padding: 0;
+}
+
+.branch-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.branch-item code,
+.conflict-file code {
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.branch-icon {
+  font-size: 0.9rem;
+}
+
+.branch-icon.success {
+  color: var(--accent-success);
+}
+
+.branch-icon.conflict {
+  color: var(--accent-warning);
+}
+
+/* Conflict Branch Item */
+.conflict-branch {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.conflict-branch-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.conflict-branch-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.conflict-branch-header .expand-icon {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  width: 12px;
+}
+
+.conflict-branch-header .branch-name {
+  flex: 1;
+}
+
+.conflict-branch-header .file-count {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.conflict-files {
+  list-style: none;
+  padding: 0 12px 12px;
+  margin: 0;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.conflict-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.conflict-file .file-icon {
+  opacity: 0.7;
+}
+
+.no-files-note {
+  padding: 0 12px 12px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.no-files-note code {
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Resolution Instructions */
+.resolution-instructions {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.resolution-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.resolution-instructions li {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.resolution-instructions code {
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+/* Error Details */
+.error-details {
+  background: var(--bg-tertiary);
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--accent-danger);
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

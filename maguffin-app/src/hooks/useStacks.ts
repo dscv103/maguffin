@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import type { Stack, Repository } from "../types";
+import type { Stack, Repository, RestackResult } from "../types";
 
 export function useStacks(repository: Repository | null) {
   const [stacks, setStacks] = useState<Stack[]>([]);
@@ -80,10 +80,10 @@ export function useStacks(repository: Repository | null) {
     [fetchStacks]
   );
 
-  const restackStack = useCallback(async (stackId: string) => {
+  const restackStack = useCallback(async (stackId: string): Promise<RestackResult | null> => {
     try {
       setError(null);
-      const result = await invoke("restack", { stackId });
+      const result = await invoke<RestackResult>("restack", { stackId });
       await fetchStacks(); // Refresh to get updated stack
       return result;
     } catch (e) {
