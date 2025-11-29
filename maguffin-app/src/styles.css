@@ -461,13 +461,43 @@ body {
   border-radius: 12px;
   padding: 20px;
   margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.stack-view.collapsed {
+  padding-bottom: 20px;
 }
 
 .stack-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 8px;
+  margin-bottom: 0;
+}
+
+.stack-view.expanded .stack-header {
   margin-bottom: 16px;
+}
+
+.stack-toggle {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.stack-toggle:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.toggle-icon {
+  display: inline-block;
+  transition: transform 0.2s;
 }
 
 .stack-root {
@@ -475,6 +505,25 @@ body {
   align-items: center;
   gap: 8px;
   font-weight: 600;
+  flex: 1;
+  cursor: pointer;
+  padding: 4px 0;
+  border-radius: 4px;
+}
+
+.stack-root:hover {
+  color: var(--accent-primary);
+}
+
+.branch-count {
+  font-weight: 400;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.stack-actions {
+  display: flex;
+  gap: 8px;
 }
 
 .root-icon {
@@ -1582,4 +1631,610 @@ body {
 
 .error-retry-btn:hover {
   opacity: 0.9;
+}
+
+/* ============================================
+   Conflict Resolution Dialog
+   ============================================ */
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  max-width: 600px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--shadow), 0 20px 50px rgba(0, 0, 0, 0.3);
+}
+
+.dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.dialog-header h2 {
+  flex: 1;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.dialog-header .close-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.dialog-header .close-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.dialog-header .status-icon {
+  font-size: 1.5rem;
+}
+
+.dialog-header .status-icon.status-green {
+  color: var(--accent-success);
+}
+
+.dialog-header .status-icon.status-yellow {
+  color: var(--accent-warning);
+}
+
+.dialog-header .status-icon.status-red {
+  color: var(--accent-danger);
+}
+
+.dialog-content {
+  padding: 20px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.dialog-footer {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+/* Buttons */
+.btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
+  transition: opacity 0.2s;
+}
+
+.btn:hover {
+  opacity: 0.9;
+}
+
+.btn-primary {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+}
+
+/* Conflict Resolution Specific Styles */
+.conflict-resolution-dialog .success-message,
+.conflict-resolution-dialog .conflict-details,
+.conflict-resolution-dialog .error-message {
+  margin-bottom: 16px;
+}
+
+.conflict-resolution-dialog .conflict-intro {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.restacked-branches,
+.conflict-branches {
+  margin-bottom: 20px;
+}
+
+.restacked-branches h4,
+.conflict-branches h4,
+.resolution-instructions h4 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.restacked-branches ul {
+  list-style: none;
+  padding: 0;
+}
+
+.branch-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.branch-item code,
+.conflict-file code {
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.branch-icon {
+  font-size: 0.9rem;
+}
+
+.branch-icon.success {
+  color: var(--accent-success);
+}
+
+.branch-icon.conflict {
+  color: var(--accent-warning);
+}
+
+/* Conflict Branch Item */
+.conflict-branch {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+
+.conflict-branch-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.conflict-branch-header:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.conflict-branch-header .expand-icon {
+  font-size: 0.7rem;
+  color: var(--text-secondary);
+  width: 12px;
+}
+
+.conflict-branch-header .branch-name {
+  flex: 1;
+}
+
+.conflict-branch-header .file-count {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.conflict-files {
+  list-style: none;
+  padding: 0 12px 12px;
+  margin: 0;
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.conflict-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.85rem;
+}
+
+.conflict-file .file-icon {
+  opacity: 0.7;
+}
+
+.no-files-note {
+  padding: 0 12px 12px;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+.no-files-note code {
+  background: var(--bg-secondary);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Resolution Instructions */
+.resolution-instructions {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 20px;
+}
+
+.resolution-instructions ol {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.resolution-instructions li {
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.resolution-instructions code {
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+/* Error Details */
+.error-details {
+  background: var(--bg-tertiary);
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 0.85rem;
+  color: var(--accent-danger);
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ============================================
+   Onboarding Flow
+   ============================================ */
+
+.onboarding-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.onboarding-dialog {
+  background: var(--bg-secondary);
+  border-radius: 16px;
+  max-width: 540px;
+  width: 90%;
+  box-shadow: var(--shadow), 0 30px 60px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.onboarding-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.step-indicator {
+  display: flex;
+  gap: 8px;
+}
+
+.step-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.2s;
+}
+
+.step-dot:hover {
+  border-color: var(--accent-primary);
+}
+
+.step-dot.active {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  transform: scale(1.2);
+}
+
+.step-dot.completed {
+  background: var(--accent-success);
+  border-color: var(--accent-success);
+}
+
+.skip-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+
+.skip-btn:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.onboarding-content {
+  padding: 40px 32px;
+  text-align: center;
+}
+
+.step-icon {
+  font-size: 4rem;
+  margin-bottom: 24px;
+  animation: bounce 0.5s ease;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.step-title {
+  font-size: 1.5rem;
+  margin-bottom: 12px;
+  color: var(--text-primary);
+}
+
+.step-description {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  margin-bottom: 24px;
+  line-height: 1.6;
+}
+
+.step-tips {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  background: var(--bg-tertiary);
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.tip-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.tip-bullet {
+  color: var(--accent-primary);
+  font-weight: bold;
+}
+
+.onboarding-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+}
+
+.nav-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.prev-btn {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.prev-btn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--bg-secondary);
+}
+
+.prev-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.next-btn {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.next-btn:hover {
+  opacity: 0.9;
+}
+
+.step-counter {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+/* Replay onboarding button in settings */
+.replay-onboarding-btn {
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.replay-onboarding-btn:hover {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+/* ============================================
+   Stacks View Header and Actions
+   ============================================ */
+
+.stacks-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.stacks-header h1 {
+  margin: 0;
+}
+
+.stacks-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.reconcile-btn,
+.refresh-btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+
+.reconcile-btn:hover:not(:disabled),
+.refresh-btn:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  border-color: var(--accent-primary);
+}
+
+.reconcile-btn:disabled,
+.refresh-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Reconcile Report */
+.reconcile-report {
+  background: var(--bg-secondary);
+  border: 1px solid var(--accent-warning);
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.reconcile-report h3 {
+  margin: 0 0 16px 0;
+  color: var(--accent-warning);
+}
+
+.reconcile-report h4 {
+  margin: 16px 0 8px 0;
+  font-size: 0.95rem;
+}
+
+.reconcile-report p {
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-size: 0.9rem;
+}
+
+.orphaned-branches ul,
+.reconcile-warnings ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.orphaned-branches li,
+.reconcile-warnings li {
+  padding: 6px 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.orphaned-branches code,
+.reconcile-warnings code {
+  background: var(--bg-tertiary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+}
+
+.reconcile-report .dismiss-btn {
+  margin-top: 16px;
+  padding: 8px 16px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.reconcile-report .dismiss-btn:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
 }

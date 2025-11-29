@@ -169,3 +169,31 @@ export interface SyncConfig {
   enabled: boolean;
   sync_on_startup: boolean;
 }
+
+// Restack types
+export type RestackStatus = "success" | "conflicts" | "failed";
+
+export interface RestackConflict {
+  branch: string;
+  files: string[];
+}
+
+export interface RestackResult {
+  status: RestackStatus;
+  restacked: string[];
+  conflicts: RestackConflict[];
+  error: string | null;
+}
+
+// Reconcile types
+export type WarningType = "parent_not_ancestor" | "externally_modified" | "parent_deleted";
+
+export interface ReconcileWarning {
+  branch: string;
+  warning: WarningType;
+}
+
+export interface ReconcileReport {
+  orphaned: string[];
+  warnings: ReconcileWarning[];
+}

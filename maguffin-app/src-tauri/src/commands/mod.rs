@@ -7,7 +7,7 @@ use crate::cache::{Cache, RecentRepository};
 use crate::config::SyncConfig;
 use crate::domain::pr::PullRequestDetails;
 use crate::domain::repo::GitHubRemote;
-use crate::domain::stack::{RestackResult, Stack};
+use crate::domain::stack::{ReconcileReport, RestackResult, Stack};
 use crate::domain::sync::SyncStatus;
 use crate::domain::{AuthState, PullRequest, Repository, SyncState};
 use crate::error::AppError;
@@ -756,6 +756,33 @@ pub async fn create_stack_pr(
     Ok(pr_number)
 }
 
+/// Reconcile stack metadata with actual Git state.
+/// This checks for branches that have been deleted, modified, or need rebase.
+#[tauri::command]
+pub async fn reconcile_stacks(state: State<'_, AppState>) -> Result<ReconcileReport, String> {
+    let repo = state
+        .current_repo
+        .read()
+        .await
+        .clone()
+        .ok_or("No repository opened")?;
+
+    let repo_path = repo.path.clone();
+
+    // Run entire operation in spawn_blocking since StackService contains non-Send types
+    tokio::task::spawn_blocking(move || {
+        let git = Git2Backend::open(&repo_path).map_err(|e| e.to_string())?;
+        let stack_service = StackService::new(repo_path, git).map_err(|e| e.to_string())?;
+
+        // Use block_on for the async method since we're in a blocking context
+        let rt = tokio::runtime::Handle::current();
+        rt.block_on(async { stack_service.reconcile().await })
+            .map_err(|e| e.to_string())
+    })
+    .await
+    .map_err(|e| format!("Task failed: {:?}", e))?
+}
+
 // ============================================================================
 // Sync Commands
 // ============================================================================
@@ -831,6 +858,7 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         create_stack_branch,
         create_stack_pr,
         restack,
+        reconcile_stacks,
         get_sync_status,
         start_sync,
         stop_sync,

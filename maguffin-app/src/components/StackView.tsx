@@ -1,13 +1,15 @@
-import React from "react";
+import React, { useState } from "react";
 import type { Stack, StackBranch } from "../types";
 
 interface StackViewProps {
   stack: Stack;
   onBranchClick?: (branch: StackBranch) => void;
   onRestack?: (stack: Stack) => void;
+  defaultExpanded?: boolean;
 }
 
-export function StackView({ stack, onBranchClick, onRestack }: StackViewProps) {
+export function StackView({ stack, onBranchClick, onRestack, defaultExpanded = true }: StackViewProps) {
+  const [expanded, setExpanded] = useState(defaultExpanded);
   const getStatusIcon = (status: StackBranch["status"]): string => {
     switch (status) {
       case "up_to_date":
@@ -92,23 +94,54 @@ export function StackView({ stack, onBranchClick, onRestack }: StackViewProps) {
   };
 
   return (
-    <div className="stack-view">
+    <div className={`stack-view ${expanded ? "expanded" : "collapsed"}`}>
       <header className="stack-header">
-        <div className="stack-root">
+        <button 
+          className="stack-toggle"
+          onClick={() => setExpanded(!expanded)}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Collapse stack" : "Expand stack"}
+        >
+          <span className="toggle-icon">{expanded ? "▼" : "▶"}</span>
+        </button>
+        <div 
+          className="stack-root"
+          onClick={() => setExpanded(!expanded)}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              setExpanded(!expanded);
+            } else if (e.key === " ") {
+              e.preventDefault();
+              setExpanded(!expanded);
+            }
+          }}
+        >
           <span className="root-icon">⬤</span>
           <span className="root-name">{stack.root}</span>
+          <span className="branch-count">
+            ({stack.branches.length} branch{stack.branches.length !== 1 ? "es" : ""})
+          </span>
         </div>
-        {needsRestack && (
-          <button
-            className="restack-btn"
-            onClick={() => onRestack?.(stack)}
-          >
-            Restack
-          </button>
-        )}
+        <div className="stack-actions">
+          {needsRestack && (
+            <button
+              className="restack-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onRestack?.(stack);
+              }}
+            >
+              Restack
+            </button>
+          )}
+        </div>
       </header>
 
-      <div className="stack-tree">{buildTree()}</div>
+      {expanded && (
+        <div className="stack-tree">{buildTree()}</div>
+      )}
     </div>
   );
 }

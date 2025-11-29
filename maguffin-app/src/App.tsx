@@ -1,20 +1,31 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback } from "./components";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback, ConflictResolutionDialog, OnboardingFlow, useOnboarding } from "./components";
 import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
-import type { PullRequest, Stack } from "./types";
+import type { PullRequest, Stack, RestackResult, ReconcileReport, WarningType } from "./types";
 
 type View = "auth" | "dashboard" | "stacks" | "settings";
+
+const WARNING_MESSAGES: Record<WarningType, string> = {
+  parent_not_ancestor: "Parent is not an ancestor (branch was rebased externally)",
+  externally_modified: "Branch was modified externally",
+  parent_deleted: "Parent branch was deleted",
+};
 
 function App() {
   const { authState } = useAuth();
   const { repository, recentRepositories, loading: repoLoading, error: repoError, openRepository, removeRecentRepository, clearRepository, clearError: clearRepoError } = useRepository();
-  const { stacks, loading: stacksLoading, error: stacksError, restackStack } = useStacks(repository);
+  const { stacks, loading: stacksLoading, error: stacksError, restackStack, reconcileStacks, refresh: refreshStacks } = useStacks(repository);
   const { refresh: refreshPRs } = usePullRequests();
   const { theme, setTheme, toggleTheme } = useTheme();
   const { status: syncStatus, config: syncConfig, syncNow, loading: syncLoading, startSync, updateConfig, error: syncError, clearError: clearSyncError } = useSync();
+  const { showOnboarding, completeOnboarding, resetOnboarding } = useOnboarding();
   const [currentView, setCurrentView] = useState<View>("dashboard");
   const [selectedPR, setSelectedPR] = useState<PullRequest | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [restackResult, setRestackResult] = useState<RestackResult | null>(null);
+  const [currentRestackStackId, setCurrentRestackStackId] = useState<string | null>(null);
+  const [reconcileReport, setReconcileReport] = useState<ReconcileReport | null>(null);
+  const [reconciling, setReconciling] = useState(false);
 
   const isAuthenticated = authState.type === "authenticated";
   
@@ -73,6 +84,18 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  // Show onboarding for first-time users (before auth)
+  if (showOnboarding) {
+    return (
+      <div className="app">
+        <OnboardingFlow 
+          onComplete={completeOnboarding} 
+          onSkip={completeOnboarding} 
+        />
+      </div>
+    );
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="app">
@@ -82,7 +105,35 @@ function App() {
   }
 
   const handleRestack = async (stack: Stack) => {
-    await restackStack(stack.id);
+    setCurrentRestackStackId(stack.id);
+    const result = await restackStack(stack.id);
+    if (result) {
+      setRestackResult(result);
+    }
+  };
+
+  const handleRetryRestack = async () => {
+    if (currentRestackStackId) {
+      const result = await restackStack(currentRestackStackId);
+      if (result) {
+        setRestackResult(result);
+      }
+    }
+  };
+
+  const handleCloseRestackDialog = () => {
+    setRestackResult(null);
+    setCurrentRestackStackId(null);
+  };
+
+  const handleReconcile = async () => {
+    setReconciling(true);
+    setReconcileReport(null);
+    const report = await reconcileStacks();
+    setReconciling(false);
+    if (report && (report.orphaned.length > 0 || report.warnings.length > 0)) {
+      setReconcileReport(report);
+    }
   };
 
   const handlePRActionComplete = () => {
@@ -168,7 +219,58 @@ function App() {
             {currentView === "stacks" && (
               <ErrorBoundary fallback={<ViewErrorFallback message="Failed to load stacks view" />}>
                 <div className="stacks-view">
-                  <h1>Stacks</h1>
+                  <div className="stacks-header">
+                    <h1>Stacks</h1>
+                    <div className="stacks-actions">
+                      <button 
+                        className="reconcile-btn" 
+                        onClick={handleReconcile}
+                        disabled={reconciling || stacks.length === 0}
+                      >
+                        {reconciling ? "Checking..." : "🔄 Reconcile"}
+                      </button>
+                      <button 
+                        className="refresh-btn" 
+                        onClick={() => refreshStacks()}
+                        disabled={stacksLoading}
+                      >
+                        ↻ Refresh
+                      </button>
+                    </div>
+                  </div>
+
+                  {reconcileReport && (
+                    <div className="reconcile-report">
+                      <h3>Reconciliation Report</h3>
+                      {reconcileReport.orphaned.length > 0 && (
+                        <div className="orphaned-branches">
+                          <h4>⚠️ Orphaned Branches</h4>
+                          <p>These branches were deleted externally:</p>
+                          <ul>
+                            {reconcileReport.orphaned.map((branch) => (
+                              <li key={branch}><code>{branch}</code></li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      {reconcileReport.warnings.length > 0 && (
+                        <div className="reconcile-warnings">
+                          <h4>⚠️ Warnings</h4>
+                          <ul>
+                            {reconcileReport.warnings.map((warning, idx) => (
+                              <li key={idx}>
+                                <code>{warning.branch}</code>: {WARNING_MESSAGES[warning.warning] || warning.warning}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      <button className="dismiss-btn" onClick={() => setReconcileReport(null)}>
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
                   {stacksLoading ? (
                     <div className="loading">
                       <div className="spinner" />
@@ -286,6 +388,9 @@ function App() {
                 <section className="settings-section">
                   <h2>About</h2>
                   <p className="about-text">Maguffin is a cross-platform Git client with a Tower-style PR dashboard and Graphite-style stacked PR workflow.</p>
+                  <button className="replay-onboarding-btn" onClick={resetOnboarding}>
+                    🎓 Replay onboarding tour
+                  </button>
                 </section>
               </div>
             )}
@@ -304,6 +409,14 @@ function App() {
 
       {showShortcuts && (
         <KeyboardShortcutsHelp onClose={() => setShowShortcuts(false)} />
+      )}
+
+      {restackResult && (
+        <ConflictResolutionDialog
+          result={restackResult}
+          onClose={handleCloseRestackDialog}
+          onRetry={restackResult.status !== "success" ? handleRetryRestack : undefined}
+        />
       )}
     </div>
   );

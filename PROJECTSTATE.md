@@ -172,6 +172,25 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Implemented PR sorting, Markdown rendering, and recent repositories features. Added sort controls to PRDashboard, Markdown component for PR descriptions, and recent repos list with cache storage.",
     "timestamp": "2025-11-28T17:30:00Z",
     "validation": "All 52 unit tests pass. Frontend builds successfully. PR sorting, Markdown rendering, and recent repositories features complete."
+  },
+  {
+    "from_agent": "feature-developer",
+    "to_agent": "feature-developer",
+    "phase": "implementation-milestone-8",
+    "artefacts": [
+      "maguffin-app/src/components/ConflictResolutionDialog.tsx",
+      "maguffin-app/src/components/OnboardingFlow.tsx",
+      "maguffin-app/src/components/StackView.tsx",
+      "maguffin-app/src/components/index.ts",
+      "maguffin-app/src/hooks/useStacks.ts",
+      "maguffin-app/src/App.tsx",
+      "maguffin-app/src/types/index.ts",
+      "maguffin-app/src/styles.css",
+      "maguffin-app/src-tauri/src/commands/mod.rs"
+    ],
+    "trigger": "Implemented conflict resolution UI, collapsible stacks, onboarding flow for first-time users, and stack reconciliation integration with UI.",
+    "timestamp": "2025-11-29T03:45:00Z",
+    "validation": "All 56 unit tests pass. Frontend builds successfully. Conflict resolution dialog shows restack results. Onboarding flow guides new users. Stack view supports collapse/expand. Reconciliation detects orphaned/modified branches."
   }
 ]
 ```
