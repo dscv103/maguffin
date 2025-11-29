@@ -238,7 +238,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-008 | Dry-run mode for restack | Deferred |
 | FR-009 | PR description template | Deferred |
 | NFR-004 | Onboarding flow | ✓ Complete |
-| NFR-005 | Provider abstraction layer | Partial |
+| NFR-005 | Provider abstraction layer | ✓ Complete |
 | - | Settings UI | ✓ Complete (with theme/sync settings) |
 
 ### Technical Debt
@@ -272,9 +272,10 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | cache | 6 | ✓ Pass |
 | keyring | 2 | ✓ Pass (1 ignored) |
 | error | 3 | ✓ Pass |
-| **Backend Total** | **61** | ✓ All Pass |
+| provider | 3 | ✓ Pass |
+| **Backend Total** | **64** | ✓ All Pass |
 | **Frontend (React)** | **46** | ✓ All Pass |
-| **Grand Total** | **107** | ✓ All Pass |
+| **Grand Total** | **110** | ✓ All Pass |
 
 ---
 
@@ -291,6 +292,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | M7 | 2025-11-28 | PR sorting, Markdown rendering, recent repositories |
 | M8 | 2025-11-29 | Conflict resolution UI, onboarding flow, collapsible stacks, reconciliation |
 | M9 | 2025-11-29 | Rate limit handling with backoff, frontend tests (46 tests) |
+| M10 | 2025-11-29 | Provider abstraction layer with traits for future multi-provider support |
 
 ---
 
@@ -316,6 +318,7 @@ maguffin-app/
         │   ├── pr_service.rs
         │   ├── stack_service.rs
         │   └── auth_service.rs
+        ├── provider/       # Provider abstraction layer
         ├── cache/          # SQLite local cache
         ├── keyring/        # Secure credential storage
         ├── config/         # Configuration

@@ -12,6 +12,7 @@ pub mod error;
 pub mod git;
 pub mod github;
 pub mod keyring;
+pub mod provider;
 
 use commands::AppState;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
