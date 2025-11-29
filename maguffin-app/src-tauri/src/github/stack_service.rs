@@ -353,8 +353,8 @@ impl StackService {
 
                 for stack in &mut metadata.stacks {
                     if let Some(branch) = stack.find_branch_mut(&branch_name) {
-                        branch.status = status.clone();
-                        if let Some(sha) = new_sha.clone() {
+                        branch.status = status;
+                        if let Some(sha) = new_sha {
                             branch.head_sha = Some(sha);
                         }
                         break;
