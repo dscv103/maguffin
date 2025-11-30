@@ -171,10 +171,8 @@ jobs:
         with:
           workspaces: maguffin-app/src-tauri
 
+      # Cross-platform builds verify compilation only
+      # Full test suite runs on Linux with all Tauri dependencies
       - name: Build
         run: cargo build --target ${{ matrix.target }}
-        working-directory: maguffin-app/src-tauri
-
-      - name: Run Tests
-        run: cargo test
         working-directory: maguffin-app/src-tauri

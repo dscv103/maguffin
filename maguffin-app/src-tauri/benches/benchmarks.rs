@@ -115,9 +115,11 @@ fn bench_cache_operations(c: &mut Criterion) {
     });
 
     c.bench_function("cache_insert", |b| {
-        let mut cache_clone = cache.clone();
+        let mut counter = 0u64;
         b.iter(|| {
-            cache_clone.insert("new_key".to_string(), "new_value".to_string());
+            let mut cache_clone = cache.clone();
+            cache_clone.insert(format!("new_key_{}", counter), "new_value".to_string());
+            counter = counter.wrapping_add(1);
             black_box(&cache_clone);
         })
     });
