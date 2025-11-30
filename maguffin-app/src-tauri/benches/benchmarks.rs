@@ -4,6 +4,7 @@
 
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use std::collections::HashMap;
+use url::Url;
 
 /// Benchmark JSON serialization of PR-like structures
 fn bench_json_serialization(c: &mut Criterion) {
@@ -77,7 +78,7 @@ fn bench_stack_operations(c: &mut Criterion) {
     });
 }
 
-/// Benchmark string parsing operations similar to remote URL parsing
+/// Benchmark URL parsing operations using the url crate
 fn bench_url_parsing(c: &mut Criterion) {
     let urls = [
         "https://github.com/owner/repo.git",
@@ -88,11 +89,11 @@ fn bench_url_parsing(c: &mut Criterion) {
 
     c.bench_function("parse_github_url", |b| {
         b.iter(|| {
-            for url in &urls {
-                // Simulate parsing logic
-                if url.contains("github.com") {
-                    let parts: Vec<&str> = black_box(url.split('/').collect());
-                    black_box(parts.len());
+            for url_str in &urls {
+                // Use the url crate for real URL parsing
+                if let Ok(parsed) = Url::parse(url_str) {
+                    black_box(parsed.host_str());
+                    black_box(parsed.path_segments().map(|s| s.collect::<Vec<_>>()));
                 }
             }
         })
@@ -117,10 +118,10 @@ fn bench_cache_operations(c: &mut Criterion) {
     c.bench_function("cache_insert", |b| {
         let mut counter = 0u64;
         b.iter(|| {
-            let mut cache_clone = cache.clone();
-            cache_clone.insert(format!("new_key_{}", counter), "new_value".to_string());
+            let mut cache_new = HashMap::new();
+            cache_new.insert(format!("new_key_{}", counter), "new_value".to_string());
             counter = counter.wrapping_add(1);
-            black_box(&cache_clone);
+            black_box(&cache_new);
         })
     });
 }
