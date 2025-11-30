@@ -1,14 +1,16 @@
 //! Local cache module using SQLite.
 //!
 //! This module provides persistent local storage for PR data, stack metadata,
-//! and other cached information.
+//! PR templates, and other cached information.
 
+use crate::domain::template::PrTemplate;
 use crate::error::{Result, StorageError};
 use chrono::{DateTime, Utc};
 use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::sync::Mutex;
+use uuid::Uuid;
 
 /// Recent repository entry.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -80,6 +82,15 @@ impl Cache {
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS pr_templates (
+                id TEXT PRIMARY KEY,
+                name TEXT NOT NULL,
+                body TEXT NOT NULL,
+                is_default INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
             );
             "#,
         )
@@ -210,6 +221,188 @@ impl Cache {
 
         Ok(())
     }
+
+    // ========================================================================
+    // PR Template methods
+    // ========================================================================
+
+    /// Save a PR template.
+    pub fn save_template(&self, template: &PrTemplate) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
+
+        // If this template is being set as default, unset any existing default
+        if template.is_default {
+            conn.execute("UPDATE pr_templates SET is_default = 0", [])
+                .map_err(|e| StorageError::Database(e.to_string()))?;
+        }
+
+        conn.execute(
+            "INSERT OR REPLACE INTO pr_templates (id, name, body, is_default, created_at, updated_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            params![
+                template.id.to_string(),
+                template.name,
+                template.body,
+                if template.is_default { 1 } else { 0 },
+                template.created_at.to_rfc3339(),
+                template.updated_at.to_rfc3339(),
+            ],
+        )
+        .map_err(|e| StorageError::Database(e.to_string()))?;
+
+        Ok(())
+    }
+
+    /// Get all PR templates.
+    pub fn get_templates(&self) -> Result<Vec<PrTemplate>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
+
+        let mut stmt = conn
+            .prepare("SELECT id, name, body, is_default, created_at, updated_at FROM pr_templates ORDER BY name")
+            .map_err(|e| StorageError::Database(e.to_string()))?;
+
+        let templates = stmt
+            .query_map([], |row| {
+                let id_str: String = row.get(0)?;
+                let name: String = row.get(1)?;
+                let body: String = row.get(2)?;
+                let is_default: i32 = row.get(3)?;
+                let created_at_str: String = row.get(4)?;
+                let updated_at_str: String = row.get(5)?;
+
+                let id = Uuid::parse_str(&id_str).unwrap_or_else(|_| Uuid::new_v4());
+                let created_at = DateTime::parse_from_rfc3339(&created_at_str)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+                let updated_at = DateTime::parse_from_rfc3339(&updated_at_str)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+
+                Ok(PrTemplate {
+                    id,
+                    name,
+                    body,
+                    is_default: is_default != 0,
+                    created_at,
+                    updated_at,
+                })
+            })
+            .map_err(|e| StorageError::Database(e.to_string()))?
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(|e| StorageError::Database(e.to_string()))?;
+
+        Ok(templates)
+    }
+
+    /// Get a specific template by ID.
+    pub fn get_template(&self, id: &Uuid) -> Result<Option<PrTemplate>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
+
+        let result = conn.query_row(
+            "SELECT id, name, body, is_default, created_at, updated_at FROM pr_templates WHERE id = ?1",
+            params![id.to_string()],
+            |row| {
+                let id_str: String = row.get(0)?;
+                let name: String = row.get(1)?;
+                let body: String = row.get(2)?;
+                let is_default: i32 = row.get(3)?;
+                let created_at_str: String = row.get(4)?;
+                let updated_at_str: String = row.get(5)?;
+
+                let id = Uuid::parse_str(&id_str).unwrap_or_else(|_| Uuid::new_v4());
+                let created_at = DateTime::parse_from_rfc3339(&created_at_str)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+                let updated_at = DateTime::parse_from_rfc3339(&updated_at_str)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+
+                Ok(PrTemplate {
+                    id,
+                    name,
+                    body,
+                    is_default: is_default != 0,
+                    created_at,
+                    updated_at,
+                })
+            },
+        );
+
+        match result {
+            Ok(template) => Ok(Some(template)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(StorageError::Database(e.to_string()).into()),
+        }
+    }
+
+    /// Get the default template, if one exists.
+    pub fn get_default_template(&self) -> Result<Option<PrTemplate>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
+
+        let result = conn.query_row(
+            "SELECT id, name, body, is_default, created_at, updated_at FROM pr_templates WHERE is_default = 1 LIMIT 1",
+            [],
+            |row| {
+                let id_str: String = row.get(0)?;
+                let name: String = row.get(1)?;
+                let body: String = row.get(2)?;
+                let is_default: i32 = row.get(3)?;
+                let created_at_str: String = row.get(4)?;
+                let updated_at_str: String = row.get(5)?;
+
+                let id = Uuid::parse_str(&id_str).unwrap_or_else(|_| Uuid::new_v4());
+                let created_at = DateTime::parse_from_rfc3339(&created_at_str)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+                let updated_at = DateTime::parse_from_rfc3339(&updated_at_str)
+                    .map(|dt| dt.with_timezone(&Utc))
+                    .unwrap_or_else(|_| Utc::now());
+
+                Ok(PrTemplate {
+                    id,
+                    name,
+                    body,
+                    is_default: is_default != 0,
+                    created_at,
+                    updated_at,
+                })
+            },
+        );
+
+        match result {
+            Ok(template) => Ok(Some(template)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(StorageError::Database(e.to_string()).into()),
+        }
+    }
+
+    /// Delete a template by ID.
+    pub fn delete_template(&self, id: &Uuid) -> Result<bool> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
+
+        let rows_affected = conn
+            .execute(
+                "DELETE FROM pr_templates WHERE id = ?1",
+                params![id.to_string()],
+            )
+            .map_err(|e| StorageError::Database(e.to_string()))?;
+
+        Ok(rows_affected > 0)
+    }
 }
 
 #[cfg(test)]
@@ -281,5 +474,94 @@ mod tests {
 
         let repos = cache.get_recent_repositories(10).unwrap();
         assert_eq!(repos.len(), 0);
+    }
+
+    #[test]
+    fn test_save_and_get_template() {
+        let cache = Cache::in_memory().unwrap();
+        let template = PrTemplate::new("Test Template".to_string(), "Test body".to_string());
+
+        cache.save_template(&template).unwrap();
+
+        let retrieved = cache.get_template(&template.id).unwrap();
+        assert!(retrieved.is_some());
+        let retrieved = retrieved.unwrap();
+        assert_eq!(retrieved.name, "Test Template");
+        assert_eq!(retrieved.body, "Test body");
+    }
+
+    #[test]
+    fn test_get_templates() {
+        let cache = Cache::in_memory().unwrap();
+
+        let template1 = PrTemplate::new("Alpha".to_string(), "Body 1".to_string());
+        let template2 = PrTemplate::new("Beta".to_string(), "Body 2".to_string());
+
+        cache.save_template(&template1).unwrap();
+        cache.save_template(&template2).unwrap();
+
+        let templates = cache.get_templates().unwrap();
+        assert_eq!(templates.len(), 2);
+        // Should be sorted by name
+        assert_eq!(templates[0].name, "Alpha");
+        assert_eq!(templates[1].name, "Beta");
+    }
+
+    #[test]
+    fn test_default_template() {
+        let cache = Cache::in_memory().unwrap();
+
+        let template1 = PrTemplate::new("First".to_string(), "Body 1".to_string());
+        let template2 =
+            PrTemplate::new("Second".to_string(), "Body 2".to_string()).set_default(true);
+
+        cache.save_template(&template1).unwrap();
+        cache.save_template(&template2).unwrap();
+
+        let default = cache.get_default_template().unwrap();
+        assert!(default.is_some());
+        assert_eq!(default.unwrap().name, "Second");
+    }
+
+    #[test]
+    fn test_only_one_default_template() {
+        let cache = Cache::in_memory().unwrap();
+
+        let template1 =
+            PrTemplate::new("First".to_string(), "Body 1".to_string()).set_default(true);
+        let template2 =
+            PrTemplate::new("Second".to_string(), "Body 2".to_string()).set_default(true);
+
+        cache.save_template(&template1).unwrap();
+        cache.save_template(&template2).unwrap();
+
+        let templates = cache.get_templates().unwrap();
+        let default_count = templates.iter().filter(|t| t.is_default).count();
+        assert_eq!(default_count, 1);
+
+        let default = cache.get_default_template().unwrap();
+        assert_eq!(default.unwrap().name, "Second");
+    }
+
+    #[test]
+    fn test_delete_template() {
+        let cache = Cache::in_memory().unwrap();
+        let template = PrTemplate::new("To Delete".to_string(), "Body".to_string());
+
+        cache.save_template(&template).unwrap();
+        assert!(cache.get_template(&template.id).unwrap().is_some());
+
+        let deleted = cache.delete_template(&template.id).unwrap();
+        assert!(deleted);
+        assert!(cache.get_template(&template.id).unwrap().is_none());
+    }
+
+    #[test]
+    fn test_delete_nonexistent_template() {
+        let cache = Cache::in_memory().unwrap();
+        let fake_id = Uuid::new_v4();
+
+        let deleted = cache.delete_template(&fake_id).unwrap();
+        assert!(!deleted);
     }
 }

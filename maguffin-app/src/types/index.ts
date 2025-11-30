@@ -218,3 +218,20 @@ export interface ReconcileReport {
   orphaned: string[];
   warnings: ReconcileWarning[];
 }
+
+// PR Template types
+export interface PrTemplate {
+  id: string;
+  name: string;
+  body: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TemplateContext {
+  branch?: string;
+  author?: string;
+  date?: string;
+  title?: string;
+}
