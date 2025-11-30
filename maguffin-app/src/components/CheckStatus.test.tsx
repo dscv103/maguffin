@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { CheckStatusDisplay } from "./CheckStatus";
-import type { CheckStatus, CheckState, CheckConclusion } from "../types";
+import type { CheckStatus } from "../types";
 
 describe("CheckStatusDisplay", () => {
   describe("no checks", () => {
@@ -49,7 +49,7 @@ describe("CheckStatusDisplay", () => {
 
     it("renders unknown state correctly", () => {
       const checkStatus: CheckStatus = {
-        state: "UNKNOWN" as CheckState,
+        state: "UNKNOWN",
         checks: [],
       };
       render(<CheckStatusDisplay checkStatus={checkStatus} />);
@@ -222,11 +222,14 @@ describe("CheckStatusDisplay", () => {
   });
 
   describe("unknown conclusion", () => {
+    // Tests defensive handling of potentially new/unknown conclusion values from the GitHub API
+    // The type assertion is intentional to simulate future API changes
     it("handles unknown conclusion gracefully", () => {
       const checkStatus: CheckStatus = {
         state: "PENDING",
         checks: [
-          { name: "build", status: "COMPLETED", conclusion: "UNKNOWN_CONCLUSION" as CheckConclusion, details_url: null },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          { name: "build", status: "COMPLETED", conclusion: "FUTURE_NEW_VALUE" as any, details_url: null },
         ],
       };
       const { container } = render(<CheckStatusDisplay checkStatus={checkStatus} />);
