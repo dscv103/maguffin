@@ -213,6 +213,39 @@ pub struct RestackResult {
 
     /// Error message (if failed)
     pub error: Option<String>,
+
+    /// Whether this was a dry run (preview only, no changes made)
+    #[serde(default)]
+    pub dry_run: bool,
+}
+
+/// Preview of what a restack operation will do.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RestackPreview {
+    /// Branches that will be rebased
+    pub will_rebase: Vec<RestackBranchPreview>,
+
+    /// Branches that are already up to date
+    pub up_to_date: Vec<String>,
+
+    /// Total number of commits that will be replayed
+    pub total_commits: i32,
+}
+
+/// Preview info for a single branch in a restack.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RestackBranchPreview {
+    /// Branch name
+    pub branch: String,
+
+    /// Parent branch onto which it will be rebased
+    pub onto: String,
+
+    /// Number of commits that will be replayed
+    pub commits_to_replay: i32,
+
+    /// Whether the branch has a PR associated
+    pub has_pr: bool,
 }
 
 /// Status of a restack operation.
@@ -354,5 +387,40 @@ mod tests {
 
         assert!(metadata.find_stack_containing("feature-a").is_some());
         assert!(metadata.find_stack_containing("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_restack_result_dry_run_default() {
+        let result = RestackResult {
+            status: RestackStatus::Success,
+            restacked: vec!["feature-a".to_string()],
+            conflicts: vec![],
+            error: None,
+            dry_run: false,
+        };
+
+        // Serialize and check dry_run is included
+        let json = serde_json::to_string(&result).unwrap();
+        assert!(json.contains("\"dry_run\":false"));
+    }
+
+    #[test]
+    fn test_restack_preview_serialization() {
+        let preview = RestackPreview {
+            will_rebase: vec![RestackBranchPreview {
+                branch: "feature-a".to_string(),
+                onto: "main".to_string(),
+                commits_to_replay: 3,
+                has_pr: true,
+            }],
+            up_to_date: vec!["feature-b".to_string()],
+            total_commits: 3,
+        };
+
+        let json = serde_json::to_string(&preview).unwrap();
+        assert!(json.contains("\"will_rebase\""));
+        assert!(json.contains("\"up_to_date\""));
+        assert!(json.contains("\"total_commits\":3"));
+        assert!(json.contains("\"has_pr\":true"));
     }
 }

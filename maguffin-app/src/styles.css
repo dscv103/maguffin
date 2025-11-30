@@ -2255,3 +2255,126 @@ body {
   background: var(--bg-primary);
   color: var(--text-primary);
 }
+
+/* ============================================ */
+/* Restack Preview Dialog                       */
+/* ============================================ */
+
+.restack-preview-dialog {
+  max-width: 560px;
+}
+
+.restack-preview-dialog .preview-intro {
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.restack-preview-dialog .preview-intro strong {
+  color: var(--text-primary);
+}
+
+.will-rebase-branches,
+.up-to-date-branches {
+  margin-bottom: 20px;
+}
+
+.will-rebase-branches h4,
+.up-to-date-branches h4 {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+}
+
+.up-to-date-branches ul {
+  list-style: none;
+  padding: 0;
+}
+
+.branch-preview-item {
+  background: var(--bg-tertiary);
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 8px;
+}
+
+.branch-preview-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.branch-preview-header .branch-icon {
+  font-size: 1rem;
+}
+
+.branch-preview-header .branch-icon.rebase {
+  color: var(--accent-primary);
+}
+
+.branch-preview-header .branch-name,
+.branch-preview-header .onto-name {
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.branch-preview-header .arrow {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.branch-preview-header .pr-badge {
+  background: var(--accent-primary);
+  color: white;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.branch-preview-details {
+  margin-top: 8px;
+  padding-left: 28px;
+}
+
+.branch-preview-details .commits-count {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+.preview-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(241, 196, 15, 0.1);
+  border: 1px solid var(--accent-warning);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-top: 20px;
+}
+
+.preview-warning .warning-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.preview-warning p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0;
+}
+
+.status-icon.status-blue {
+  color: var(--accent-primary);
+}
+
+.empty-message {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 20px;
+}

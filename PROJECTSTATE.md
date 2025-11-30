@@ -223,6 +223,26 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Implemented provider abstraction layer with traits (AuthProvider, PullRequestProvider, RepositoryProvider) for future multi-provider support.",
     "timestamp": "2025-11-29T05:15:00Z",
     "validation": "All 64 backend unit tests pass. All 46 frontend tests pass. Provider abstraction layer complete with ProviderType enum and provider traits."
+  },
+  {
+    "from_agent": "feature-developer",
+    "to_agent": "feature-developer",
+    "phase": "implementation-milestone-11",
+    "artefacts": [
+      "maguffin-app/src-tauri/src/domain/stack/mod.rs",
+      "maguffin-app/src-tauri/src/git/mod.rs",
+      "maguffin-app/src-tauri/src/github/stack_service.rs",
+      "maguffin-app/src-tauri/src/commands/mod.rs",
+      "maguffin-app/src/types/index.ts",
+      "maguffin-app/src/hooks/useStacks.ts",
+      "maguffin-app/src/components/RestackPreviewDialog.tsx",
+      "maguffin-app/src/components/ConflictResolutionDialog.tsx",
+      "maguffin-app/src/styles.css",
+      "PROGRESS.md"
+    ],
+    "trigger": "Started implementing deferred work: dry-run mode for restack (preview_restack), resume after conflict (continue_restack), and rebase state detection.",
+    "timestamp": "2025-11-29T06:05:00Z",
+    "validation": "All 66 backend unit tests pass. All 46 frontend tests pass. New features: RestackPreview with branch commit counts, continue_restack command, is_rebase_in_progress check, get_rebase_state, RestackPreviewDialog UI component."
   }
 ]
 ```
