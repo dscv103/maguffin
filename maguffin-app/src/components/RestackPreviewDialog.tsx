@@ -2,7 +2,6 @@ import type { RestackPreview, RestackBranchPreview } from "../types";
 
 interface RestackPreviewDialogProps {
   preview: RestackPreview;
-  stackId: string;
   onConfirm: () => void;
   onCancel: () => void;
   isLoading?: boolean;
@@ -10,7 +9,6 @@ interface RestackPreviewDialogProps {
 
 export function RestackPreviewDialog({
   preview,
-  stackId: _stackId,
   onConfirm,
   onCancel,
   isLoading = false,

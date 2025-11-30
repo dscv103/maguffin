@@ -274,12 +274,11 @@ impl StackService {
         let branches = stack.topological_order();
 
         for branch in branches {
-            let git = self.git.lock().expect("git lock poisoned");
-
             // Check if branch needs restacking
-            let needs_restack = git
-                .needs_rebase(&branch.name, &branch.parent)
-                .unwrap_or(true);
+            let needs_restack = {
+                let git = self.git.lock().expect("git lock poisoned");
+                git.needs_rebase(&branch.name, &branch.parent)?
+            };
 
             if !needs_restack {
                 preview.up_to_date.push(branch.name.clone());
@@ -287,9 +286,10 @@ impl StackService {
             }
 
             // Count commits that will be replayed
-            let commits = git
-                .commits_to_replay(&branch.name, &branch.parent)
-                .unwrap_or(0);
+            let commits = {
+                let git = self.git.lock().expect("git lock poisoned");
+                git.commits_to_replay(&branch.name, &branch.parent)?
+            };
 
             preview.will_rebase.push(RestackBranchPreview {
                 branch: branch.name.clone(),
@@ -318,31 +318,48 @@ impl StackService {
                 self.restack(stack_id).await
             }
             Err(e) => {
-                // Still have conflicts
-                let conflict_files = {
-                    let git = self.git.lock().expect("git lock poisoned");
-                    git.get_conflict_files()
-                };
+                // Determine error type and set status accordingly
+                let app_error = e.downcast_ref::<crate::error::AppError>();
+                let is_conflict = app_error.map_or(false, |ae| {
+                    matches!(ae, crate::error::AppError::Git(GitError::Conflict { .. }))
+                });
 
-                let rebase_state = {
-                    let git = self.git.lock().expect("git lock poisoned");
-                    git.get_rebase_state()
-                };
+                if is_conflict {
+                    // Still have conflicts
+                    let conflict_files = {
+                        let git = self.git.lock().expect("git lock poisoned");
+                        git.get_conflict_files()
+                    };
 
-                let branch_name = rebase_state
-                    .and_then(|s| s.branch)
-                    .unwrap_or_else(|| "unknown".to_string());
+                    let rebase_state = {
+                        let git = self.git.lock().expect("git lock poisoned");
+                        git.get_rebase_state()
+                    };
 
-                Ok(RestackResult {
-                    status: RestackStatus::Conflicts,
-                    restacked: Vec::new(),
-                    conflicts: vec![RestackConflict {
-                        branch: branch_name,
-                        files: conflict_files,
-                    }],
-                    error: Some(e.to_string()),
-                    dry_run: false,
-                })
+                    let branch_name = rebase_state
+                        .and_then(|s| s.branch)
+                        .unwrap_or_else(|| "unknown".to_string());
+
+                    Ok(RestackResult {
+                        status: RestackStatus::Conflicts,
+                        restacked: Vec::new(),
+                        conflicts: vec![RestackConflict {
+                            branch: branch_name,
+                            files: conflict_files,
+                        }],
+                        error: Some(e.to_string()),
+                        dry_run: false,
+                    })
+                } else {
+                    // Rebase failed for other reasons
+                    Ok(RestackResult {
+                        status: RestackStatus::Failed,
+                        restacked: Vec::new(),
+                        conflicts: Vec::new(),
+                        error: Some(e.to_string()),
+                        dry_run: false,
+                    })
+                }
             }
         }
     }
