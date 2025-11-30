@@ -2378,3 +2378,231 @@ body {
   text-align: center;
   padding: 20px;
 }
+
+/* Template Manager Styles */
+.template-manager {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+}
+
+.template-manager.loading,
+.template-manager.error {
+  padding: 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.template-manager.error {
+  color: var(--accent-danger);
+}
+
+.template-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.template-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.template-empty {
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 40px 20px;
+}
+
+.template-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.template-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.template-item:last-child {
+  margin-bottom: 0;
+}
+
+.template-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.template-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.default-badge {
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  background: var(--accent-primary);
+  color: white;
+  border-radius: 4px;
+  font-weight: normal;
+}
+
+.template-preview {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.template-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: 12px;
+}
+
+.template-actions button {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.template-actions button:hover {
+  background: var(--bg-secondary);
+}
+
+.template-actions button.select-btn {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: white;
+}
+
+.template-actions button.select-btn:hover {
+  opacity: 0.9;
+}
+
+.template-actions button.danger {
+  color: var(--accent-danger);
+}
+
+.template-actions button.danger:hover {
+  background: var(--accent-danger);
+  border-color: var(--accent-danger);
+  color: white;
+}
+
+/* Template Form */
+.template-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.template-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.template-form .form-group.checkbox {
+  flex-direction: row;
+  align-items: center;
+}
+
+.template-form .form-group.checkbox label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.template-form label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.template-form input[type="text"],
+.template-form textarea {
+  padding: 10px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.template-form input[type="text"]:focus,
+.template-form textarea:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+}
+
+.template-form textarea {
+  resize: vertical;
+  min-height: 150px;
+  font-family: monospace;
+}
+
+.template-form .placeholder-hint {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.template-form .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.template-form .form-actions button {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.template-form .form-actions button:first-child {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.template-form .form-actions button:first-child:hover {
+  background: var(--bg-tertiary);
+}
+
+.template-form .form-actions button.primary {
+  background: var(--accent-primary);
+  border: none;
+  color: white;
+}
+
+.template-form .form-actions button.primary:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.template-form .form-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

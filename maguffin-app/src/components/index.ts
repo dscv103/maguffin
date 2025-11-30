@@ -13,3 +13,4 @@ export { ErrorBoundary, ViewErrorFallback } from "./ErrorBoundary";
 export { ConflictResolutionDialog } from "./ConflictResolutionDialog";
 export { RestackPreviewDialog } from "./RestackPreviewDialog";
 export { OnboardingFlow, useOnboarding } from "./OnboardingFlow";
+export { TemplateManager } from "./TemplateManager";

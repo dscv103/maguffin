@@ -128,7 +128,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] **Correct Base Branch** - Uses parent branch as base
 - [x] **PR Number Association** - Saves PR number to stack metadata
 - [x] **Auto-populate Title** - Accepts title parameter
-- [ ] **PR Description Template** - Deferred to future version
+- [x] **PR Description Template** - Template domain types, storage, and management UI
 - [x] **Stack Context in Description** - Stack links added to PR body
 - [x] **Update Base on Parent Merge** - Implemented via `update_pr_base` command
 
@@ -237,7 +237,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-007 | Highlight current branch in stack | ✓ Complete |
 | FR-008 | Dry-run mode for restack | ✓ Complete |
 | FR-008 | Resume after conflict | ✓ Complete |
-| FR-009 | PR description template | Deferred |
+| FR-009 | PR description template | ✓ Complete |
 | NFR-004 | Onboarding flow | ✓ Complete |
 | NFR-005 | Provider abstraction layer | ✓ Complete |
 | - | Settings UI | ✓ Complete (with theme/sync settings) |

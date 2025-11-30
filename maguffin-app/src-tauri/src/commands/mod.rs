@@ -932,6 +932,117 @@ pub async fn update_sync_config(
         .map_err(|e| e.to_string())
 }
 
+// ============================================================================
+// Template Commands
+// ============================================================================
+
+/// Get all PR templates.
+#[tauri::command]
+pub async fn get_templates(
+    state: State<'_, AppState>,
+) -> Result<Vec<crate::domain::template::PrTemplate>, String> {
+    state.cache.get_templates().map_err(|e| e.to_string())
+}
+
+/// Get a specific template by ID.
+#[tauri::command]
+pub async fn get_template(
+    state: State<'_, AppState>,
+    id: String,
+) -> Result<Option<crate::domain::template::PrTemplate>, String> {
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    state.cache.get_template(&uuid).map_err(|e| e.to_string())
+}
+
+/// Get the default template.
+#[tauri::command]
+pub async fn get_default_template(
+    state: State<'_, AppState>,
+) -> Result<Option<crate::domain::template::PrTemplate>, String> {
+    state
+        .cache
+        .get_default_template()
+        .map_err(|e| e.to_string())
+}
+
+/// Create a new template.
+#[tauri::command]
+pub async fn create_template(
+    state: State<'_, AppState>,
+    name: String,
+    body: String,
+    is_default: bool,
+) -> Result<crate::domain::template::PrTemplate, String> {
+    let template =
+        crate::domain::template::PrTemplate::new(name, body).set_default(is_default);
+    state
+        .cache
+        .save_template(&template)
+        .map_err(|e| e.to_string())?;
+    Ok(template)
+}
+
+/// Update an existing template.
+#[tauri::command]
+pub async fn update_template(
+    state: State<'_, AppState>,
+    id: String,
+    name: String,
+    body: String,
+    is_default: bool,
+) -> Result<crate::domain::template::PrTemplate, String> {
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+
+    // Get existing template to preserve created_at
+    let existing = state
+        .cache
+        .get_template(&uuid)
+        .map_err(|e| e.to_string())?
+        .ok_or("Template not found")?;
+
+    let template = crate::domain::template::PrTemplate {
+        id: uuid,
+        name,
+        body,
+        is_default,
+        created_at: existing.created_at,
+        updated_at: chrono::Utc::now(),
+    };
+
+    state
+        .cache
+        .save_template(&template)
+        .map_err(|e| e.to_string())?;
+    Ok(template)
+}
+
+/// Delete a template.
+#[tauri::command]
+pub async fn delete_template(state: State<'_, AppState>, id: String) -> Result<bool, String> {
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    state
+        .cache
+        .delete_template(&uuid)
+        .map_err(|e| e.to_string())
+}
+
+/// Render a template with context values.
+#[tauri::command]
+pub async fn render_template(
+    state: State<'_, AppState>,
+    id: String,
+    context: crate::domain::template::TemplateContext,
+) -> Result<String, String> {
+    let uuid = uuid::Uuid::parse_str(&id).map_err(|e| e.to_string())?;
+    let template = state
+        .cache
+        .get_template(&uuid)
+        .map_err(|e| e.to_string())?
+        .ok_or("Template not found")?;
+
+    Ok(template.render(&context))
+}
+
 /// Generate all command handlers for registration.
 pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     tauri::generate_handler![
@@ -965,6 +1076,13 @@ pub fn generate_handlers() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync 
         stop_sync,
         sync_now,
         update_sync_config,
+        get_templates,
+        get_template,
+        get_default_template,
+        create_template,
+        update_template,
+        delete_template,
+        render_template,
     ]
 }
 

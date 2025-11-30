@@ -8,6 +8,7 @@ pub mod pr;
 pub mod repo;
 pub mod stack;
 pub mod sync;
+pub mod template;
 
 // Re-export commonly used types
 pub use auth::{AuthState, AuthenticatedUser, DeviceFlowPending};
@@ -20,3 +21,4 @@ pub use stack::{
     BranchStatus, ReconcileReport, RestackResult, RestackStatus, Stack, StackBranch, StackMetadata,
 };
 pub use sync::{RateLimitInfo, SyncChange, SyncStatus};
+pub use template::{PrTemplate, TemplateContext};
