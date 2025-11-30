@@ -276,8 +276,8 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | error | 3 | ✓ Pass |
 | provider | 3 | ✓ Pass |
 | **Backend Total** | **78** | ✓ All Pass |
-| **Frontend (React)** | **58** | ✓ All Pass |
-| **Grand Total** | **136** | ✓ All Pass |
+| **Frontend (React)** | **123** | ✓ All Pass |
+| **Grand Total** | **201** | ✓ All Pass |
 
 ---
 
@@ -297,6 +297,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | M10 | 2025-11-29 | Provider abstraction layer with traits for future multi-provider support |
 | M11 | 2025-11-29 | Deferred work: dry-run mode for restack, resume after conflict, rebase state detection |
 | M12 | 2025-11-30 | Cross-platform CI (macOS, Windows), performance benchmarks, frontend tests in CI |
+| M13 | 2025-11-30 | Improved test coverage: added tests for AuthView, CheckStatus, SyncStatusIndicator, ThemeToggle (65 new tests) |
 
 ---
 
