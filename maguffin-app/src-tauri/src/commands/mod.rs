@@ -973,8 +973,7 @@ pub async fn create_template(
     body: String,
     is_default: bool,
 ) -> Result<crate::domain::template::PrTemplate, String> {
-    let template =
-        crate::domain::template::PrTemplate::new(name, body).set_default(is_default);
+    let template = crate::domain::template::PrTemplate::new(name, body).set_default(is_default);
     state
         .cache
         .save_template(&template)

@@ -395,7 +395,10 @@ impl Cache {
             .map_err(|e| StorageError::Database(format!("Lock error: {}", e)))?;
 
         let rows_affected = conn
-            .execute("DELETE FROM pr_templates WHERE id = ?1", params![id.to_string()])
+            .execute(
+                "DELETE FROM pr_templates WHERE id = ?1",
+                params![id.to_string()],
+            )
             .map_err(|e| StorageError::Database(e.to_string()))?;
 
         Ok(rows_affected > 0)
