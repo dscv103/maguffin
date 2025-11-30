@@ -4,8 +4,8 @@ This file persists SDLC phase, ownership, and handoff history so agents can coor
 
 ## Current project state
 
-- `current_phase`: implementation
-- `active_agents`: ["sdlc-manager", "feature-developer"]
+- `current_phase`: testing
+- `active_agents`: ["sdlc-manager", "test-specialist", "qa-engineer"]
 - `blocked_tasks`: []
 
 Agents must update this section when they change phase, become active, or encounter blockers.
@@ -243,6 +243,20 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Started implementing deferred work: dry-run mode for restack (preview_restack), resume after conflict (continue_restack), and rebase state detection.",
     "timestamp": "2025-11-29T06:05:00Z",
     "validation": "All 66 backend unit tests pass. All 46 frontend tests pass. New features: RestackPreview with branch commit counts, continue_restack command, is_rebase_in_progress check, get_rebase_state, RestackPreviewDialog UI component."
+  },
+  {
+    "from_agent": "feature-developer",
+    "to_agent": "test-specialist",
+    "phase": "implementationtotesting",
+    "artefacts": [
+      "PROGRESS.md",
+      "maguffin-app/src-tauri/",
+      "maguffin-app/src/",
+      ".github/workflows/ci.yml"
+    ],
+    "trigger": "All functional requirements (FR-001 to FR-010) and non-functional requirements (NFR-001 to NFR-005) implemented. 78 backend tests and 123 frontend tests pass. CI pipeline with cross-platform builds (macOS, Windows, Linux) operational.",
+    "timestamp": "2025-11-30T05:46:49Z",
+    "validation": "sdlc-manager reviewed PROGRESS.md, verified all P0/P1/P2 requirements complete, confirmed CI passing on main branch (run #159), frontend builds successfully with 123 tests passing."
   }
 ]
 ```
