@@ -240,7 +240,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-009 | PR description template | ✓ Complete |
 | NFR-004 | Onboarding flow | ✓ Complete |
 | NFR-005 | Provider abstraction layer | ✓ Complete |
-| - | Settings UI | ✓ Complete (with theme/sync settings) |
+| - | Settings UI | ✓ Complete (with theme/sync settings and PR templates) |
 
 ### Technical Debt
 
