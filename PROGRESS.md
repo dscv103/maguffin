@@ -212,7 +212,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-004 | CI/Check status indicators | ✓ Complete |
 | FR-008 | Conflict resolution UI | ✓ Complete |
 | FR-010 | Background sync service | ✓ Complete |
-| NFR-002 | Cross-platform build and testing | Not Tested |
+| NFR-002 | Cross-platform build and testing | ✓ Complete (macOS, Windows, Linux CI workflows) |
 
 ### Medium Priority (P1 - High)
 
@@ -225,7 +225,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | FR-008 | Update PR base after parent merge | ✓ Complete |
 | FR-009 | Stack context in PR description | ✓ Complete |
 | FR-010 | Rate limit handling and backoff | ✓ Complete |
-| NFR-001 | Performance benchmarking | Not Started |
+| NFR-001 | Performance benchmarking | ✓ Complete (Criterion benchmarks added) |
 | NFR-004 | Dark/light theme support | ✓ Complete |
 | NFR-004 | Keyboard shortcuts | ✓ Complete |
 
@@ -262,6 +262,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | domain/auth | 4 | ✓ Pass |
 | domain/repo | 8 | ✓ Pass |
 | domain/sync | 5 | ✓ Pass |
+| domain/template | 6 | ✓ Pass |
 | config | 3 | ✓ Pass |
 | git | 3 | ✓ Pass |
 | github/mod | 9 | ✓ Pass |
@@ -270,13 +271,13 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | github/sync_service | 4 | ✓ Pass |
 | github/auth_service | 2 | ✓ Pass |
 | github/queries | 2 | ✓ Pass |
-| cache | 6 | ✓ Pass |
+| cache | 12 | ✓ Pass |
 | keyring | 2 | ✓ Pass (1 ignored) |
 | error | 3 | ✓ Pass |
 | provider | 3 | ✓ Pass |
-| **Backend Total** | **66** | ✓ All Pass |
-| **Frontend (React)** | **46** | ✓ All Pass |
-| **Grand Total** | **112** | ✓ All Pass |
+| **Backend Total** | **78** | ✓ All Pass |
+| **Frontend (React)** | **58** | ✓ All Pass |
+| **Grand Total** | **136** | ✓ All Pass |
 
 ---
 
@@ -295,6 +296,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | M9 | 2025-11-29 | Rate limit handling with backoff, frontend tests (46 tests) |
 | M10 | 2025-11-29 | Provider abstraction layer with traits for future multi-provider support |
 | M11 | 2025-11-29 | Deferred work: dry-run mode for restack, resume after conflict, rebase state detection |
+| M12 | 2025-11-30 | Cross-platform CI (macOS, Windows), performance benchmarks, frontend tests in CI |
 
 ---
 
@@ -330,4 +332,4 @@ maguffin-app/
 
 ---
 
-*Last Updated: 2025-11-29*
+*Last Updated: 2025-11-30*
