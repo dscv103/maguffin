@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useRef } from "react";
-import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback, ConflictResolutionDialog, OnboardingFlow, useOnboarding } from "./components";
+import { AuthView, PRDashboard, PRDetailPanel, StackList, RepoSelector, ThemeToggle, KeyboardShortcutsHelp, SyncStatusIndicator, ErrorBoundary, ViewErrorFallback, ConflictResolutionDialog, OnboardingFlow, useOnboarding, TemplateManager } from "./components";
 import { useAuth, useStacks, useRepository, usePullRequests, useTheme, useAppKeyboardShortcuts, AVAILABLE_SHORTCUTS, useSync } from "./hooks";
 import type { PullRequest, Stack, RestackResult, ReconcileReport, WarningType } from "./types";
 
@@ -387,6 +387,10 @@ function App() {
                       </div>
                     ))}
                   </div>
+                </section>
+
+                <section className="settings-section">
+                  <TemplateManager />
                 </section>
 
                 <section className="settings-section">
