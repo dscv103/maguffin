@@ -83,6 +83,7 @@ impl PrTemplate {
     /// - `{{branch}}` - Current branch name
     /// - `{{author}}` - Current user's login
     /// - `{{date}}` - Current date (YYYY-MM-DD)
+    /// - `{{title}}` - Pull request title
     ///
     /// # Arguments
     ///
