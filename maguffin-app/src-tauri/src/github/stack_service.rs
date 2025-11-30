@@ -318,11 +318,9 @@ impl StackService {
                 self.restack(stack_id).await
             }
             Err(e) => {
-                // Determine error type and set status accordingly
-                let app_error = e.downcast_ref::<crate::error::AppError>();
-                let is_conflict = app_error.map_or(false, |ae| {
-                    matches!(ae, crate::error::AppError::Git(GitError::Conflict { .. }))
-                });
+                // Determine error type and set status accordingly using pattern matching
+                let is_conflict =
+                    matches!(&e, crate::error::AppError::Git(GitError::Conflict { .. }));
 
                 if is_conflict {
                     // Still have conflicts
