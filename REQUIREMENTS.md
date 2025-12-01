@@ -326,16 +326,16 @@ Build a modern, fast, cross-platform desktop Git client that provides:
 
 | Requirement | Feature | Test Coverage | Status |
 |-------------|---------|---------------|--------|
-| FR-001 | Authentication | Unit + Integration | Planned |
-| FR-002 | Repository Context | Unit + Integration | Planned |
-| FR-003 | PR Dashboard List | Unit + E2E | Planned |
-| FR-004 | PR Dashboard Detail | Unit + E2E | Planned |
-| FR-005 | PR Actions | Integration + E2E | Planned |
-| FR-006 | Stack Definition | Unit | Planned |
-| FR-007 | Stack Visualization | Unit + E2E | Planned |
-| FR-008 | Restack Operation | Unit + Integration | Planned |
-| FR-009 | Stack PR Creation | Integration | Planned |
-| FR-010 | Data Sync | Unit + Integration | Planned |
+| FR-001 | Authentication | Unit (auth_service, keyring, AuthView) | Implemented |
+| FR-002 | Repository Context | Unit (repo, git) | Implemented |
+| FR-003 | PR Dashboard List | Unit (pr, pr_service, PullRequestCard) | Implemented |
+| FR-004 | PR Dashboard Detail | Unit (pr, Markdown, CheckStatus) | Implemented |
+| FR-005 | PR Actions | Unit (pr_service) | Implemented |
+| FR-006 | Stack Definition | Unit (stack, stack_service) | Implemented |
+| FR-007 | Stack Visualization | Unit (stack) | Implemented |
+| FR-008 | Restack Operation | Unit (stack, stack_service) | Implemented |
+| FR-009 | Stack PR Creation | Unit (stack_service) | Implemented |
+| FR-010 | Data Sync | Unit (sync, sync_service, SyncStatusIndicator) | Implemented |
 
 ---
 
