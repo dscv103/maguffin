@@ -4,8 +4,8 @@ This file persists SDLC phase, ownership, and handoff history so agents can coor
 
 ## Current project state
 
-- `current_phase`: testing
-- `active_agents`: ["sdlc-manager", "test-specialist", "qa-engineer"]
+- `current_phase`: deployment
+- `active_agents`: ["sdlc-manager", "devops-engineer", "release-manager"]
 - `blocked_tasks`: []
 
 Agents must update this section when they change phase, become active, or encounter blockers.
@@ -266,6 +266,15 @@ A chronological list of JSON objects describing ownership transfers. Append new 
     "trigger": "Verified all 201 tests pass (78 backend Rust tests, 123 frontend React tests). All linting checks pass (cargo fmt, cargo clippy, tsc). Updated REQUIREMENTS.md traceability matrix to reflect implemented test coverage for all functional requirements FR-001 through FR-010.",
     "timestamp": "2025-12-01T04:20:00Z",
     "validation": "qa-engineer confirmed test suite runs successfully, no failing tests, code coverage aligns with requirements."
+  },
+  {
+    "from_agent": "qa-engineer",
+    "to_agent": "devops-engineer",
+    "phase": "testingtodeployment",
+    "artefacts": [".github/workflows/release.yml", "PROGRESS.md"],
+    "trigger": "QA verification complete. All 201 tests pass across backend (78) and frontend (123). All functional requirements FR-001 to FR-010 have test coverage. Release workflow created for automated cross-platform builds.",
+    "timestamp": "2025-12-01T04:57:00Z",
+    "validation": "devops-engineer verified release workflow configuration for macOS (Intel + Apple Silicon), Windows, and Linux. Tauri action configured for automated builds and GitHub release creation."
   }
 ]
 ```

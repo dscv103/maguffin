@@ -8,7 +8,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 
 | Attribute | Value |
 |-----------|-------|
-| **Current Phase** | Testing |
+| **Current Phase** | Deployment |
 | **Framework** | Tauri 2.x + React |
 | **Backend** | Rust with git2, reqwest, rusqlite |
 | **Target Platforms** | macOS, Windows, Linux |
@@ -26,6 +26,16 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 - [x] **ADRs Created**:
   - ADR-001: UI Framework Selection (Tauri + Web UI chosen)
   - ADR-002: Git Integration Approach (git2 + CLI fallback chosen)
+
+### CI/CD & Deployment
+
+- [x] **CI Pipeline** - GitHub Actions workflow for linting, testing, and cross-platform builds
+- [x] **Release Workflow** - Automated release pipeline for all platforms:
+  - macOS (Intel and Apple Silicon)
+  - Windows (x64)
+  - Linux (x64)
+- [x] **Tauri Build Action** - Integration with tauri-action for automated app bundling
+- [x] **Release Asset Upload** - Automatic upload of installers to GitHub Releases
 
 ### Authentication (FR-001)
 
@@ -298,6 +308,7 @@ This document tracks the development progress of Maguffin, a Rust-based desktop 
 | M11 | 2025-11-29 | Deferred work: dry-run mode for restack, resume after conflict, rebase state detection |
 | M12 | 2025-11-30 | Cross-platform CI (macOS, Windows), performance benchmarks, frontend tests in CI |
 | M13 | 2025-11-30 | Improved test coverage: added tests for AuthView, CheckStatus, SyncStatusIndicator, ThemeToggle (65 new tests) |
+| M14 | 2025-12-01 | Deployment phase: Release workflow for automated cross-platform builds and GitHub releases |
 
 ---
 
